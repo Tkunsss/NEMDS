@@ -7,10 +7,14 @@
     { "src": "apps/driver/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "routes": [
-    { "src": "^/admin(?:/(.*))?$", "dest": "/apps/admin/dist/$1" },
-    { "src": "^/caller(?:/(.*))?$", "dest": "/apps/caller/dist/$1" },
-    { "src": "^/dispatcher(?:/(.*))?$", "dest": "/apps/dispatcher/dist/$1" },
-    { "src": "^/driver(?:/(.*))?$", "dest": "/apps/driver/dist/$1" },
+    { "src": "^/admin/(.*\\..+)$", "dest": "/apps/admin/dist/$1" },
+    { "src": "^/admin(?:/(.*))?$", "dest": "/apps/admin/dist/index.html" },
+    { "src": "^/caller/(.*\\..+)$", "dest": "/apps/caller/dist/$1" },
+    { "src": "^/caller(?:/(.*))?$", "dest": "/apps/caller/dist/index.html" },
+    { "src": "^/dispatcher/(.*\\..+)$", "dest": "/apps/dispatcher/dist/$1" },
+    { "src": "^/dispatcher(?:/(.*))?$", "dest": "/apps/dispatcher/dist/index.html" },
+    { "src": "^/driver/(.*\\..+)$", "dest": "/apps/driver/dist/$1" },
+    { "src": "^/driver(?:/(.*))?$", "dest": "/apps/driver/dist/index.html" },
     { "src": "^/(.*)$", "dest": "/apps/admin/dist/index.html" }
   ]
 }
