@@ -163,8 +163,8 @@ async function getStats(req, res) {
     const [hospitalRows] = await pool.query('SELECT COUNT(*) AS total_hospitals FROM hospitals');
     const [callRows] = await pool.query('SELECT COUNT(*) AS total_calls FROM emergency_calls');
     const [activeCallRows] = await pool.query("SELECT COUNT(*) AS active_calls FROM emergency_calls WHERE status IN ('pending', 'assigned', 'en_route', 'on_scene', 'transporting')");
-    const [ambulanceRows] = await pool.query('SELECT COUNT(*) AS total_ambulances FROM ambulances');
-    const [availableAmbulanceRows] = await pool.query("SELECT COUNT(*) AS available_ambulances FROM ambulances WHERE status = 'available'");
+    const [ambulanceRows] = await pool.query('SELECT COUNT(*) AS total_ambulances FROM ambulances WHERE deleted_at IS NULL');
+    const [availableAmbulanceRows] = await pool.query("SELECT COUNT(*) AS available_ambulances FROM ambulances WHERE status = 'available' AND deleted_at IS NULL");
     const [dispatcherRows] = await pool.query("SELECT COUNT(*) AS total_dispatchers FROM users WHERE role = 'dispatcher'");
     const [driverRows] = await pool.query("SELECT COUNT(*) AS total_drivers FROM users WHERE role = 'driver'");
 
