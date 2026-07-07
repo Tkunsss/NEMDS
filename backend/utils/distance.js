@@ -18,15 +18,26 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
-// Sorts a list of items (each with latitude/longitude fields) by distance
-// from a reference point, ascending. Adds a `distance_km` field to each.
-function sortByDistance(items, refLat, refLng, { latKey = 'latitude', lngKey = 'longitude' } = {}) {
+// Sorts a list of items by distance from a reference point, ascending.
+// Adds a `distance_km` field to each. When provided, custom accessors override
+// the default latitude/longitude property names.
+function sortByDistance(items, refLat, refLng, options = {}) {
+  const { latKey = 'latitude', lngKey = 'longitude', getLat, getLng } = options;
+
   return items
-    .filter((item) => item[latKey] != null && item[lngKey] != null)
-    .map((item) => ({
-      ...item,
-      distance_km: Math.round(distanceKm(refLat, refLng, Number(item[latKey]), Number(item[lngKey])) * 10) / 10
-    }))
+    .filter((item) => {
+      const lat = getLat ? getLat(item) : item[latKey];
+      const lng = getLng ? getLng(item) : item[lngKey];
+      return lat != null && lng != null;
+    })
+    .map((item) => {
+      const lat = getLat ? getLat(item) : item[latKey];
+      const lng = getLng ? getLng(item) : item[lngKey];
+      return {
+        ...item,
+        distance_km: Math.round(distanceKm(refLat, refLng, Number(lat), Number(lng)) * 10) / 10
+      };
+    })
     .sort((a, b) => a.distance_km - b.distance_km);
 }
 

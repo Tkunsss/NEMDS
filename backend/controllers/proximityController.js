@@ -66,8 +66,8 @@ async function nearestAmbulances(req, res) {
     const withoutLocation = annotated.filter((a) => a.latitude == null || a.longitude == null);
 
     const sorted = sortByDistance(availableWithLocation, Number(lat), Number(lng), {
-      latKey: 'latitude',
-      lngKey: 'longitude'
+      getLat: (ambulance) => ambulance.home_hospital_latitude ?? ambulance.latitude,
+      getLng: (ambulance) => ambulance.home_hospital_longitude ?? ambulance.longitude
     });
 
     res.json({ success: true, data: [...sorted, ...withoutLocation] });
