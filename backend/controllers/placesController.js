@@ -16,6 +16,7 @@ async function searchHospitals(req, res) {
   try {
     const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
+      console.error('Places proxy missing Google API key. Expected GOOGLE_PLACES_API_KEY or GOOGLE_MAPS_API_KEY in server environment.');
       return res.status(503).json({
         success: false,
         message: 'GOOGLE_PLACES_API_KEY is not configured on the server'
