@@ -1,0 +1,266 @@
+classDiagram
+    direction TB
+
+    %% ============================================================
+    %% AUTH & STAFF
+    %% ============================================================
+
+    class User {
+        +int user_id
+        +string full_name
+        +string phone_number
+        +string email
+        +string password_hash
+        +Role role
+        +int hospital_id
+        +bool is_active
+        +datetime created_at
+        +datetime updated_at
+        +create(full_name, phone_number, email, password_hash, role, hospital_id)
+        +findByPhone(phone_number)
+        +findByEmail(email)
+        +findById(user_id)
+        +findAllByRole(role)
+        +findByRoleAndHospital(role, hospital_id)
+        +findAll()
+        +setActive(user_id, is_active)
+        +setHospital(user_id, hospital_id)
+    }
+
+    class StaffProfile {
+        +int profile_id
+        +int user_id
+        +string employee_code
+        +string department
+        +date hire_date
+        +string shift
+    }
+
+    %% ============================================================
+    %% HOSPITALS & FLEET
+    %% ============================================================
+
+    class Hospital {
+        +int hospital_id
+        +string name
+        +string address
+        +decimal latitude
+        +decimal longitude
+        +string phone_number
+        +CapacityStatus capacity_status
+        +datetime created_at
+        +create(name, address, latitude, longitude, phone_number)
+        +findAll()
+        +findById(hospital_id)
+        +updateCapacityStatus(hospital_id, status)
+    }
+
+    class Ambulance {
+        +int ambulance_id
+        +string plate_number
+        +VehicleType vehicle_type
+        +AmbulanceStatus status
+        +int home_hospital_id
+        +decimal current_latitude
+        +decimal current_longitude
+        +datetime last_location_update
+        +create(plate_number, vehicle_type, home_hospital_id)
+        +findById(ambulance_id)
+        +findAvailable()
+        +findAvailableWithDriver()
+        +findAll()
+        +updateStatus(ambulance_id, status)
+        +updateLocation(ambulance_id, lat, lng)
+        +findByDriverUserId(user_id)
+    }
+
+    class DriverAssignment {
+        +int assignment_id
+        +int user_id
+        +int ambulance_id
+        +datetime shift_start
+        +datetime shift_end
+        +bool is_current
+        +assign(user_id, ambulance_id)
+        +unassign(ambulance_id)
+        +findCurrentByAmbulance(ambulance_id)
+        +findCurrentByDriver(user_id)
+        +findAllCurrent()
+    }
+
+    %% ============================================================
+    %% EMERGENCY CALLS
+    %% ============================================================
+
+    class EmergencyCall {
+        +int call_id
+        +string emergency_id
+        +int caller_user_id
+        +string caller_phone
+        +EmergencyType emergency_type
+        +Severity severity
+        +string description
+        +decimal latitude
+        +decimal longitude
+        +string address_text
+        +CallStatus status
+        +int assigned_hospital_id
+        +string ai_classification_label
+        +decimal ai_confidence
+        +datetime created_at
+        +datetime updated_at
+        +create(callerInfo, location, assigned_hospital_id)
+        +findById(call_id)
+        +findByEmergencyId(emergency_id)
+        +findByCallerUser(caller_user_id)
+        +findByCallerPhone(caller_phone)
+        +findByEmergencyIds(emergency_ids)
+        +findPending(hospital_id)
+        +findActive(hospital_id)
+        +findAll(limit, offset, hospital_id)
+        +findUnassigned()
+        +updateStatus(call_id, status)
+        +setAIClassification(call_id, label, confidence)
+        +cancel(call_id)
+    }
+
+    class CallerLocationPing {
+        +int ping_id
+        +int call_id
+        +decimal latitude
+        +decimal longitude
+        +decimal accuracy_meters
+        +datetime created_at
+        +addPing(call_id, lat, lng, accuracy)
+        +findLatest(call_id)
+        +findTrail(call_id, limit)
+    }
+
+    class CallStatusLog {
+        +int log_id
+        +int call_id
+        +string status
+        +string note
+        +int changed_by_user_id
+        +datetime created_at
+        +add(call_id, status, note, changed_by_user_id)
+        +findByCall(call_id)
+    }
+
+    %% ============================================================
+    %% DISPATCH
+    %% ============================================================
+
+    class Dispatch {
+        +int dispatch_id
+        +int call_id
+        +int dispatcher_user_id
+        +int ambulance_id
+        +int destination_hospital_id
+        +datetime dispatched_at
+        +datetime arrived_at_scene_at
+        +datetime departed_scene_at
+        +datetime arrived_hospital_at
+        +string notes
+        +create(call_id, dispatcher_user_id, ambulance_id, destination_hospital_id)
+        +findById(dispatch_id)
+        +findByCall(call_id)
+        +findByAmbulance(ambulance_id)
+        +findActiveForDriver(user_id)
+        +markArrivedScene(dispatch_id)
+        +markDepartedScene(dispatch_id)
+        +markArrivedHospital(dispatch_id)
+    }
+
+    %% ============================================================
+    %% ENUMERATIONS
+    %% ============================================================
+
+    class Role {
+        <<enumeration>>
+        caller
+        dispatcher
+        admin
+        driver
+    }
+
+    class CallStatus {
+        <<enumeration>>
+        pending
+        assigned
+        en_route
+        on_scene
+        transporting
+        completed
+        cancelled
+    }
+
+    %% Only 'medical' is enforced end-to-end right now (validator + UI).
+    %% accident / fire_related / other still exist in the raw DB column
+    %% type for future expansion, but nothing above the schema allows them.
+    class EmergencyType {
+        <<enumeration>>
+        medical
+    }
+
+    class Severity {
+        <<enumeration>>
+        critical
+        urgent
+        moderate
+        unknown
+    }
+
+    class AmbulanceStatus {
+        <<enumeration>>
+        available
+        dispatched
+        en_route
+        at_scene
+        transporting
+        out_of_service
+    }
+
+    class VehicleType {
+        <<enumeration>>
+        basic
+        advanced
+        neonatal
+    }
+
+    class CapacityStatus {
+        <<enumeration>>
+        available
+        limited
+        full
+    }
+
+    %% ============================================================
+    %% RELATIONSHIPS
+    %% ============================================================
+
+    User "1" --> "0..1" StaffProfile : has
+    User "1" --> "0..*" EmergencyCall : submits optionally, callers are anonymous now
+    User "1" --> "0..*" Dispatch : creates as dispatcher
+    User "1" --> "0..*" DriverAssignment : assigned as driver
+    User "1" --> "0..*" CallStatusLog : changes status
+
+    Hospital "1" --> "0..*" Ambulance : bases
+    Hospital "1" --> "0..*" Dispatch : receives as destination
+    Hospital "1" --> "0..*" User : employs dispatcher and driver staff
+    Hospital "1" --> "0..*" EmergencyCall : auto-routed as nearest
+
+    Ambulance "1" --> "0..*" DriverAssignment : has
+    Ambulance "1" --> "0..*" Dispatch : performs
+
+    EmergencyCall "1" --> "0..*" CallerLocationPing : streams live location
+    EmergencyCall "1" --> "0..1" Dispatch : triggers
+    EmergencyCall "1" --> "0..*" CallStatusLog : logs
+
+    User --> Role
+    EmergencyCall --> CallStatus
+    EmergencyCall --> EmergencyType
+    EmergencyCall --> Severity
+    Ambulance --> AmbulanceStatus
+    Ambulance --> VehicleType
+    Hospital --> CapacityStatus

@@ -1,0 +1,108 @@
+/* src/styles/tokens.css
+   NCEMDS Caller App — Design System
+
+   Design intent: this app is opened by someone who is frightened,
+   often in the first 10 seconds of an emergency. Every choice serves
+   speed and clarity over decoration. The signature element is the
+   pulse on the SOS button — the one piece of motion in the whole app,
+   reserved entirely for the action that matters most.
+*/
+
+:root {
+  /* Color: emergency red as the single accent, near-black for authority,
+     warm off-white (not clinical white) so the app doesn't feel cold
+     in someone's worst moment. */
+  --color-emergency: #D32F2F;
+  --color-emergency-dark: #A52424;
+  --color-emergency-light: #FCE4E4;
+  --color-ink: #1A1A1A;
+  --color-ink-soft: #4A4A4A;
+  --color-paper: #FAF8F6;
+  --color-surface: #FFFFFF;
+  --color-line: #E8E3DF;
+  --color-success: #2E7D32;
+  --color-warning: #B8860B;
+
+  /* Type: a no-nonsense grotesque for everything. In a crisis, a
+     display serif reads as decorative — wrong register entirely.
+     One family, leaning on weight + size for hierarchy instead. */
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.25rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-8: 3rem;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-full: 999px;
+
+  --shadow-card: 0 2px 12px rgba(26, 26, 26, 0.06);
+  --shadow-raised: 0 6px 24px rgba(211, 47, 47, 0.22);
+
+  --tap-min: 52px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-paper);
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+p { margin: 0; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--color-emergency-dark);
+  outline-offset: 2px;
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

@@ -1,0 +1,10 @@
+.vercel
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.env
+.env.*
+*.pem
+*.key
+*.crt

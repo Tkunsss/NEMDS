@@ -1,0 +1,17 @@
+{
+  "name": "ncemds-monorepo",
+  "version": "1.0.0",
+  "description": "National Centralized Emergency Medical Dispatch System - monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "backend"
+  ],
+  "scripts": {
+    "build:admin": "npm --prefix apps/admin run build",
+    "build:caller": "npm --prefix apps/caller run build",
+    "build:dispatcher": "npm --prefix apps/dispatcher run build",
+    "build:driver": "npm --prefix apps/driver run build",
+    "build:all": "npm run build:admin && npm run build:caller && npm run build:dispatcher && npm run build:driver"
+  }
+}

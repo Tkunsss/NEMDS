@@ -1,0 +1,99 @@
+/* src/styles/tokens.css
+   NCEMDS Dispatcher Console — Design System
+
+   Design intent: this is a control-room tool, staffed for hours at a time.
+   Unlike the caller app's single urgent action, dispatchers triage many
+   simultaneous calls — so the priority here is scannability and low
+   eye-fatigue over long shifts. Dark operational theme (easier on the eyes
+   under fluorescent dispatch-room lighting), severity communicated through
+   color-coded left borders on call cards rather than alarm-red everywhere.
+*/
+
+:root {
+  --color-bg: #0F1417;
+  --color-panel: #171D21;
+  --color-panel-raised: #1E2529;
+  --color-border: #2A3338;
+  --color-text: #E8ECEE;
+  --color-text-soft: #8B969C;
+  --color-text-faint: #5C686E;
+
+  --color-critical: #E5484D;
+  --color-urgent: #E8A33D;
+  --color-moderate: #4DA8E8;
+  --color-unknown: #6B7680;
+  --color-success: #3DB873;
+
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+
+  --sidebar-width: 220px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--color-bg);
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+p { margin: 0; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  background: var(--color-panel-raised);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--color-moderate);
+  outline-offset: 2px;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 5px; }

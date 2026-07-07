@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "apps/admin/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
+    { "src": "apps/caller/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
+    { "src": "apps/dispatcher/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } },
+    { "src": "apps/driver/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+  ],
+  "routes": [
+    { "src": "^/admin(?:/(.*))?$", "dest": "/apps/admin/dist/$1" },
+    { "src": "^/caller(?:/(.*))?$", "dest": "/apps/caller/dist/$1" },
+    { "src": "^/dispatcher(?:/(.*))?$", "dest": "/apps/dispatcher/dist/$1" },
+    { "src": "^/driver(?:/(.*))?$", "dest": "/apps/driver/dist/$1" }
+  ]
+}

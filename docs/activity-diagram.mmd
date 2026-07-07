@@ -1,0 +1,44 @@
+flowchart TD
+    Start([Caller holds SOS button]) --> DetectLoc[App detects GPS location]
+    DetectLoc --> ConfirmLoc{Caller confirms<br/>or adjusts pin on map?}
+    ConfirmLoc -->|Adjust| DragPin[Drag pin / tap map<br/>to correct location]
+    DragPin --> ConfirmLoc
+    ConfirmLoc -->|Confirm| AddDetails[Optionally add address<br/>note / description]
+    AddDetails --> Validate{Backend validates<br/>request data}
+    Validate -->|Invalid| ShowError[Show error,<br/>caller corrects and resubmits]
+    ShowError --> AddDetails
+    Validate -->|Valid| GenID[Generate unique emergency ID]
+    GenID --> FindNearest[Compute nearest hospital<br/>to confirmed location]
+    FindNearest --> SaveCall[Save emergency call,<br/>status = pending,<br/>emergency_type = medical,<br/>assigned_hospital_id = nearest]
+    SaveCall --> ShowID[Display emergency ID<br/>to caller]
+    ShowID --> StreamLoc[Caller device streams<br/>live location continuously]
+
+    StreamLoc --> DispatcherView[Only the assigned hospital's<br/>dispatcher sees the call<br/>in their active queue, sorted by severity]
+    DispatcherView --> SelectCall[Dispatcher selects the call]
+    SelectCall --> ViewMap[Dispatcher views caller's<br/>live location on map]
+    ViewMap --> CheckCrew{Is a crewed ambulance<br/>available?}
+    CheckCrew -->|No| AssignDriver[Dispatcher assigns a driver<br/>to an ambulance on Crew screen]
+    AssignDriver --> CheckCrew
+    CheckCrew -->|Yes| SelectAmb[Dispatcher picks ambulance<br/>from nearest-first list]
+    SelectAmb --> SelectHospital[Dispatcher optionally picks<br/>destination hospital,<br/>nearest-first list]
+    SelectHospital --> CreateDispatch[Create dispatch record]
+    CreateDispatch --> StatusAssigned[Call status to assigned,<br/>ambulance status to dispatched]
+
+    StatusAssigned --> DriverNotified[Driver sees active dispatch]
+    DriverNotified --> ViewCallerLoc[Driver views caller's<br/>live location on map]
+    ViewCallerLoc --> TapOnWay[Driver taps<br/>'On the way']
+    TapOnWay --> StatusEnRoute[Call status to en_route,<br/>ambulance status to en_route]
+    StatusEnRoute --> GPSStream[Ambulance streams<br/>live GPS to backend]
+    GPSStream --> TapArrived[Driver taps<br/>'Arrived at scene']
+    TapArrived --> StatusOnScene[Call status to on_scene]
+    StatusOnScene --> TapDeparting[Driver taps<br/>'Departing scene']
+    TapDeparting --> StatusTransporting[Call status to transporting]
+    StatusTransporting --> TapHospital[Driver taps<br/>'Arrived at hospital']
+    TapHospital --> StatusCompleted[Call status to completed,<br/>ambulance status to available]
+
+    StatusCompleted --> CallerSees[Caller's tracking screen<br/>shows 'Help has arrived']
+    CallerSees --> AdminRecord[Call and full status timeline<br/>available in admin system records]
+    AdminRecord --> End([End])
+
+    SaveCall -.->|Caller may cancel<br/>at any point before completion| Cancelled[Call status to cancelled]
+    Cancelled --> End

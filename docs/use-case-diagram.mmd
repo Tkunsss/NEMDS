@@ -1,0 +1,69 @@
+graph LR
+    Caller([Caller])
+    Driver([Driver])
+    Dispatcher([Dispatcher])
+    Admin([Admin])
+
+    subgraph NCEMDS["National Centralized Emergency Medical Dispatch System (NCEMDS)"]
+        UC1((Submit emergency request))
+        UC2((Confirm / adjust location on map))
+        UC3((Validate request information))
+        UC4((Generate emergency ID))
+        UC5((Track emergency status))
+        UC6((Stream live location))
+        UC7((Cancel emergency request))
+
+        UC8((Login))
+        UC9((View assigned case))
+        UC10((Update response status))
+        UC11((On the way))
+        UC12((Arrived at scene))
+        UC13((Departing scene))
+        UC14((Arrived at hospital))
+        UC15((View live caller location))
+
+        UC16((View emergency requests))
+        UC17((Monitor emergency request))
+        UC18((Assign ambulance))
+        UC19((Assign driver))
+        UC20((View live caller map))
+
+        UC21((Manage user))
+        UC22((Create account for Dispatcher and Driver))
+        UC23((View system record))
+        UC24((Manage ambulance information))
+        UC25((Manage hospital information))
+        UC26((View system stats))
+    end
+
+    Caller --> UC1
+    UC1 -.include.-> UC2
+    UC2 -.include.-> UC3
+    UC1 -.include.-> UC4
+    Caller --> UC5
+    UC5 -.include.-> UC6
+    Caller --> UC7
+
+    Driver --> UC8
+    Driver --> UC9
+    Driver --> UC10
+    UC10 -.extend.-> UC11
+    UC10 -.include.-> UC12
+    UC10 -.include.-> UC13
+    UC10 -.include.-> UC14
+    Driver --> UC15
+
+    Dispatcher --> UC8
+    Dispatcher --> UC16
+    Dispatcher --> UC17
+    Dispatcher --> UC18
+    UC18 -.include.-> UC19
+    Dispatcher --> UC20
+
+    Admin --> UC8
+    Admin --> UC21
+    UC21 -.include.-> UC22
+    Admin --> UC23
+    Admin --> UC24
+    Admin --> UC25
+    Admin --> UC26
