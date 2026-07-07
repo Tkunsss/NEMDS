@@ -1,9 +1,10 @@
 // src/pages/ConfirmLocationScreen.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
 import { Crosshair, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { submitEmergencyCall } from '../api/calls';
+import AdvancedMarker from '../components/AdvancedMarker';
 import { addEmergencyId } from '../utils/localHistory';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 import Button from '../components/Button';
@@ -35,6 +36,7 @@ export default function ConfirmLocationScreen() {
   });
 
   const [position, setPosition] = useState(null);
+  const [map, setMap] = useState(null);
   const [mapCenter, setMapCenter] = useState(FALLBACK_CENTER);
   const [isMapDragging, setIsMapDragging] = useState(false);
   const [isLocating, setIsLocating] = useState(true);
@@ -163,11 +165,11 @@ export default function ConfirmLocationScreen() {
             zoom={16}
             options={MAP_OPTIONS}
             onClick={handleMapClick}
-            onLoad={(map) => { mapRef.current = map; }}
+            onLoad={(mapInstance) => { mapRef.current = mapInstance; setMap(mapInstance); }}
             onDragStart={handleMapDragStart}
             onDragEnd={handleMapDragEnd}
           >
-            <Marker position={position} />
+            <AdvancedMarker map={map} position={position} title="Selected location" zIndex={1000} />
           </GoogleMap>
         )}
 
