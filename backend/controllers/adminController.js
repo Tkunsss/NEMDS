@@ -6,7 +6,7 @@ const { pool } = require('../config/db');
 async function listUsers(req, res) {
   try {
     const users = await UserModel.findAll();
-    return res.json({ success: true, users });
+    return res.json({ success: true, data: users });
   } catch (error) {
     console.error('listUsers error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load users' });
@@ -32,7 +32,7 @@ async function createStaffUser(req, res) {
     });
 
     const user = await UserModel.findById(userId);
-    return res.status(201).json({ success: true, user });
+    return res.status(201).json({ success: true, data: user });
   } catch (error) {
     console.error('createStaffUser error:', error);
     return res.status(500).json({ success: false, message: 'Failed to create staff user' });
@@ -76,7 +76,7 @@ async function updateUser(req, res) {
     await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`, values);
 
     const user = await UserModel.findById(userId);
-    return res.json({ success: true, user });
+    return res.json({ success: true, data: user });
   } catch (error) {
     console.error('updateUser error:', error);
     return res.status(500).json({ success: false, message: 'Failed to update user' });
@@ -116,7 +116,7 @@ async function deleteUser(req, res) {
 async function listHospitals(req, res) {
   try {
     const hospitals = await HospitalModel.findAll();
-    return res.json({ success: true, hospitals });
+    return res.json({ success: true, data: hospitals });
   } catch (error) {
     console.error('listHospitals error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load hospitals' });
@@ -139,7 +139,7 @@ async function createHospital(req, res) {
     });
 
     const hospital = await HospitalModel.findById(hospitalId);
-    return res.status(201).json({ success: true, hospital });
+    return res.status(201).json({ success: true, data: hospital });
   } catch (error) {
     console.error('createHospital error:', error);
     return res.status(500).json({ success: false, message: 'Failed to create hospital' });
@@ -161,13 +161,21 @@ async function getStats(req, res) {
     const [userRows] = await pool.query('SELECT COUNT(*) AS total_users FROM users');
     const [hospitalRows] = await pool.query('SELECT COUNT(*) AS total_hospitals FROM hospitals');
     const [callRows] = await pool.query('SELECT COUNT(*) AS total_calls FROM emergency_calls');
+    const [activeCallRows] = await pool.query("SELECT COUNT(*) AS active_calls FROM emergency_calls WHERE status IN ('pending', 'assigned', 'en_route', 'on_scene', 'transporting')");
+    const [ambulanceRows] = await pool.query('SELECT COUNT(*) AS total_ambulances FROM ambulances');
+    const [availableAmbulanceRows] = await pool.query("SELECT COUNT(*) AS available_ambulances FROM ambulances WHERE status = 'available'");
+    const [dispatcherRows] = await pool.query("SELECT COUNT(*) AS total_dispatchers FROM users WHERE role = 'dispatcher'");
+    const [driverRows] = await pool.query("SELECT COUNT(*) AS total_drivers FROM users WHERE role = 'driver'");
 
     return res.json({
       success: true,
-      stats: {
-        totalUsers: userRows[0].total_users,
-        totalHospitals: hospitalRows[0].total_hospitals,
-        totalCalls: callRows[0].total_calls
+      data: {
+        total_calls: callRows[0].total_calls,
+        active_calls: activeCallRows[0].active_calls,
+        available_ambulances: availableAmbulanceRows[0].available_ambulances,
+        total_ambulances: ambulanceRows[0].total_ambulances,
+        total_dispatchers: dispatcherRows[0].total_dispatchers,
+        total_drivers: driverRows[0].total_drivers
       }
     });
   } catch (error) {
@@ -184,7 +192,7 @@ async function getSystemRecords(req, res) {
       'SELECT * FROM system_logs ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [limit, offset]
     );
-    return res.json({ success: true, records: rows });
+    return res.json({ success: true, data: rows, meta: { total: rows.length } });
   } catch (error) {
     console.error('getSystemRecords error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load system records' });
