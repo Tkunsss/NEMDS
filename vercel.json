@@ -10,6 +10,7 @@
     { "src": "^/admin(?:/(.*))?$", "dest": "/apps/admin/dist/$1" },
     { "src": "^/caller(?:/(.*))?$", "dest": "/apps/caller/dist/$1" },
     { "src": "^/dispatcher(?:/(.*))?$", "dest": "/apps/dispatcher/dist/$1" },
-    { "src": "^/driver(?:/(.*))?$", "dest": "/apps/driver/dist/$1" }
+    { "src": "^/driver(?:/(.*))?$", "dest": "/apps/driver/dist/$1" },
+    { "src": "^/(.*)$", "dest": "/apps/admin/dist/index.html" }
   ]
 }

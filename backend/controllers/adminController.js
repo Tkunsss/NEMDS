@@ -2,6 +2,7 @@
 const UserModel = require('../models/userModel');
 const HospitalModel = require('../models/hospitalModel');
 const { pool } = require('../config/db');
+const { buildSystemRecords } = require('../utils/systemRecords');
 
 async function listUsers(req, res) {
   try {
@@ -189,19 +190,39 @@ async function getSystemRecords(req, res) {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
 
-    try {
-      const [rows] = await pool.query(
-        'SELECT * FROM system_logs ORDER BY created_at DESC LIMIT ? OFFSET ?',
-        [limit, offset]
-      );
-      return res.json({ success: true, data: rows, meta: { total: rows.length } });
-    } catch (tableError) {
-      if (tableError && tableError.code === 'ER_NO_SUCH_TABLE') {
-        console.warn('system_logs table is not available; returning empty records list');
-        return res.json({ success: true, data: [], meta: { total: 0 } });
-      }
-      throw tableError;
+    const [callRows] = await pool.query(
+      `SELECT *
+       FROM emergency_calls
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+
+    if (!callRows.length) {
+      return res.json({ success: true, data: [], meta: { total: 0 } });
     }
+
+    const callIds = callRows.map((call) => call.call_id);
+    const logRows = callIds.length
+      ? (await pool.query(
+          `SELECT *
+           FROM call_status_log
+           WHERE call_id IN (${callIds.map(() => '?').join(', ')})
+           ORDER BY call_id ASC, created_at ASC`,
+          callIds
+        ))[0]
+      : [];
+
+    const logsByCall = logRows.reduce((acc, row) => {
+      if (!acc[row.call_id]) acc[row.call_id] = [];
+      acc[row.call_id].push(row);
+      return acc;
+    }, {});
+
+    const records = buildSystemRecords(callRows, logsByCall);
+    const [countRows] = await pool.query('SELECT COUNT(*) AS total FROM emergency_calls');
+
+    return res.json({ success: true, data: records, meta: { total: countRows[0].total } });
   } catch (error) {
     console.error('getSystemRecords error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load system records' });
