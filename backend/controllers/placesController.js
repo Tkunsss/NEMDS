@@ -14,7 +14,7 @@ const PLACES_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
 // GET /api/places/search-hospitals?query=hospital+phnom+penh&lat=...&lng=...
 async function searchHospitals(req, res) {
   try {
-    const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const apiKey = process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_MAPS_API_KEY || process.env.VITE_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
       return res.status(503).json({
         success: false,
