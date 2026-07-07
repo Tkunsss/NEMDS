@@ -188,11 +188,20 @@ async function getSystemRecords(req, res) {
   try {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
-    const [rows] = await pool.query(
-      'SELECT * FROM system_logs ORDER BY created_at DESC LIMIT ? OFFSET ?',
-      [limit, offset]
-    );
-    return res.json({ success: true, data: rows, meta: { total: rows.length } });
+
+    try {
+      const [rows] = await pool.query(
+        'SELECT * FROM system_logs ORDER BY created_at DESC LIMIT ? OFFSET ?',
+        [limit, offset]
+      );
+      return res.json({ success: true, data: rows, meta: { total: rows.length } });
+    } catch (tableError) {
+      if (tableError && tableError.code === 'ER_NO_SUCH_TABLE') {
+        console.warn('system_logs table is not available; returning empty records list');
+        return res.json({ success: true, data: [], meta: { total: 0 } });
+      }
+      throw tableError;
+    }
   } catch (error) {
     console.error('getSystemRecords error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load system records' });
