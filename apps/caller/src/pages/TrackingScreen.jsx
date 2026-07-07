@@ -1,9 +1,8 @@
 // src/pages/TrackingScreen.jsx
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { GoogleMap, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
 import { io } from 'socket.io-client';
-import AdvancedMarker from '../components/AdvancedMarker';
 import { CheckCircle2, Circle, Copy, X, Radio } from 'lucide-react';
 import { getCallById, cancelEmergencyCall, sendLocationPing, getDispatchForCall, getAmbulanceLocation } from '../api/calls';
 import Button from '../components/Button';
@@ -38,7 +37,6 @@ export default function TrackingScreen() {
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [distanceKm, setDistanceKm] = useState(null);
   const [routePath, setRoutePath] = useState(null);
-  const [map, setMap] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -387,10 +385,8 @@ const calculateDistanceKm = (origin, destination) => {
                       center={mapCenter}
                       zoom={12}
                       options={MAP_OPTIONS}
-                      onLoad={(mapInstance) => setMap(mapInstance)}
                     >
-                      <AdvancedMarker
-                        map={map}
+                      <Marker
                         position={{ lat: Number(call.latitude), lng: Number(call.longitude) }}
                         icon={callerMarkerIcon}
                         zIndex={3}
@@ -398,8 +394,7 @@ const calculateDistanceKm = (origin, destination) => {
                       />
                       {driverLocation && (
                         <>
-                          <AdvancedMarker
-                            map={map}
+                          <Marker
                             position={driverLocation}
                             icon={driverMarkerIcon}
                             zIndex={4}

@@ -50,10 +50,15 @@ export default function AdvancedMarker({ map, position, icon, title, zIndex, onC
   useEffect(() => {
     if (!map || !window.google?.maps || !position) return;
 
-    const advancedAvailable = !!(window.google.maps.marker && map.getMapCapabilities?.()?.isAdvancedMarkersAvailable);
     const AdvancedMarkerClass = window.google.maps.marker?.AdvancedMarkerElement;
     const MarkerClass = window.google.maps.Marker;
-    const useAdvanced = advancedAvailable && AdvancedMarkerClass;
+    const mapCapabilities = typeof map.getMapCapabilities === 'function'
+      ? map.getMapCapabilities()
+      : null;
+    const advancedAvailable = !!(
+      AdvancedMarkerClass &&
+      mapCapabilities?.isAdvancedMarkersAvailable === true
+    );
 
     const sharedOptions = {
       position,
@@ -61,11 +66,19 @@ export default function AdvancedMarker({ map, position, icon, title, zIndex, onC
       zIndex,
     };
 
-    const markerOptions = useAdvanced
-      ? { map, ...sharedOptions, content }
-      : { map, ...sharedOptions, icon, visible };
+    let marker = null;
+    if (advancedAvailable) {
+      try {
+        marker = new AdvancedMarkerClass({ map, ...sharedOptions, content });
+      } catch (err) {
+        marker = null;
+      }
+    }
 
-    const marker = new (useAdvanced ? AdvancedMarkerClass : MarkerClass)(markerOptions);
+    if (!marker) {
+      marker = new MarkerClass({ map, ...sharedOptions, icon, visible });
+    }
+
     markerRef.current = marker;
 
     if (onClick) {
