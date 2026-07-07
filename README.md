@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # NCEMDS — National Centralized Emergency Medical Dispatch System
 
 Monorepo containing the backend API and all four NCEMDS apps.
