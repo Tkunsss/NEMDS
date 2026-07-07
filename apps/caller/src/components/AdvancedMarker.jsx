@@ -59,12 +59,11 @@ export default function AdvancedMarker({ map, position, icon, title, zIndex, onC
       position,
       title,
       zIndex,
-      visible,
     };
 
     const markerOptions = useAdvanced
       ? { map, ...sharedOptions, content }
-      : { map, ...sharedOptions, icon };
+      : { map, ...sharedOptions, icon, visible };
 
     const marker = new (useAdvanced ? AdvancedMarkerClass : MarkerClass)(markerOptions);
     markerRef.current = marker;
