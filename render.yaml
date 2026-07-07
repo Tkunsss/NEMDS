@@ -16,3 +16,7 @@ services:
         value: supersecret_change_me_!a1B2c3D4e5F6g7H8
       - key: JWT_EXPIRES_IN
         value: 7d
+      - key: GOOGLE_PLACES_API_KEY
+        value: AIzaSyCnJ5oNZyDu-b5QVm60kzrK5x4Z2kR7vzU
+      - key: GOOGLE_MAPS_API_KEY
+        value: AIzaSyCnJ5oNZyDu-b5QVm60kzrK5x4Z2kR7vzU
