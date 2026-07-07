@@ -37,8 +37,12 @@ export async function deleteUser(userId) {
 }
 
 export async function getSystemRecords(limit = 50, offset = 0) {
-  const { data } = await apiClient.get('/admin/records', { params: { limit, offset } });
-  return data;
+  try {
+    const { data } = await apiClient.get('/admin/records', { params: { limit, offset } });
+    return data || { success: true, data: [], meta: { total: 0 } };
+  } catch (err) {
+    return { success: false, data: [], meta: { total: 0 }, message: err.response?.data?.message || 'Unable to load system records' };
+  }
 }
 
 // Calls that couldn't be auto-routed to any hospital (e.g. no hospital had

@@ -26,8 +26,17 @@ export default function RecordsScreen() {
   useEffect(() => {
     setIsLoading(true);
     getSystemRecords(PAGE_SIZE, page * PAGE_SIZE)
-      .then((res) => { setRecords(res.data); setTotal(res.meta.total); })
-      .catch(console.error)
+      .then((res) => {
+        const safeRecords = Array.isArray(res?.data) ? res.data : [];
+        const safeTotal = Number(res?.meta?.total || safeRecords.length || 0);
+        setRecords(safeRecords);
+        setTotal(safeTotal);
+      })
+      .catch((err) => {
+        console.error(err);
+        setRecords([]);
+        setTotal(0);
+      })
       .finally(() => setIsLoading(false));
   }, [page]);
 
@@ -70,6 +79,12 @@ export default function RecordsScreen() {
       )}
 
       {isLoading && <p style={{ color: 'var(--color-text-faint)' }}>Loading…</p>}
+
+      {!isLoading && records.length === 0 && (
+        <div style={{ padding: 'var(--space-4)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+          <p style={{ color: 'var(--color-text-soft)' }}>No system records are available right now.</p>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
         {records.map((r) => {
