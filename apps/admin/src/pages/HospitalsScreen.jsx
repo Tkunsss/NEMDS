@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, Building2, Search, MapPin, CheckCircle2, Trash2 } from 'lucide-react';
 import { listHospitals, createHospital, deleteHospital } from '../api/admin';
 import { searchHospitalsByText } from '../api/places';
+import HospitalMapSearch from '../components/HospitalMapSearch';
 
 export default function HospitalsScreen() {
   const [hospitals, setHospitals] = useState([]);
@@ -58,7 +59,17 @@ export default function HospitalsScreen() {
     setSearchError(null);
     try {
       const results = await searchHospitalsByText(query.trim());
-      setSearchResults(results);
+      // Filter out hospitals already in database
+      const filtered = results.filter((searchResult) => {
+        return !hospitals.some((dbHospital) => {
+          const nameMatch = searchResult.name.toLowerCase().trim() === dbHospital.name.toLowerCase().trim();
+          const coordMatch = searchResult.latitude && searchResult.longitude &&
+            Math.abs(searchResult.latitude - dbHospital.latitude) < 0.001 &&
+            Math.abs(searchResult.longitude - dbHospital.longitude) < 0.001;
+          return nameMatch || (coordMatch && dbHospital.latitude && dbHospital.longitude);
+        });
+      });
+      setSearchResults(filtered);
     } catch (err) {
       setSearchError(err.response?.data?.message || 'Search failed — is GOOGLE_PLACES_API_KEY configured on the backend?');
       setSearchResults([]);
@@ -133,6 +144,23 @@ export default function HospitalsScreen() {
           padding: 'var(--space-5)', background: 'var(--color-surface)', border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-5)'
         }}>
+          {/* Map-based search */}
+          <HospitalMapSearch
+            existingHospitals={hospitals}
+            onSearch={(results, location) => {
+              setSearchResults(results);
+              setSearchError(null);
+            }}
+          />
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', margin: 'var(--space-4) 0', opacity: 0.5 }}>
+            <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: 'var(--color-border)' }} />
+          </div>
+
+          {/* Text-based search */}
           <form onSubmit={handleSearch} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
             <input
               value={query}
