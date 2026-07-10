@@ -10,9 +10,8 @@ const MAP_CONTAINER_STYLE = { width: '100%', height: '400px' };
 const MAP_OPTIONS = {
   disableDefaultUI: true,
   zoomControl: true,
-  clickableIcons: false,
+  clickableIcons: true,
   styles: [
-    { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', elementType: 'labels', stylers: [{ visibility: 'off' }] }
   ]
 };
