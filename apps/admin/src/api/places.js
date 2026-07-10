@@ -40,7 +40,7 @@ export async function searchHospitalsByText(query, biasLat, biasLng) {
   try {
     const { data } = await apiClient.get('/places/search-hospitals', { params });
     return data?.data || [];
-  } catch (err) {
+  } catch {
     const normalizedQuery = (query || '').toLowerCase();
     return FALLBACK_HOSPITALS.filter((hospital) => {
       const haystack = `${hospital.name} ${hospital.address}`.toLowerCase();

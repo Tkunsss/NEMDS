@@ -1,7 +1,7 @@
 // src/components/HospitalMapSearch.jsx
 import { useState, useRef, useCallback } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
-import { Search, AlertTriangle, MapPin, Loader } from 'lucide-react';
+import { AlertTriangle, MapPin, Loader } from 'lucide-react';
 import { searchHospitalsByText } from '../api/places';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 
@@ -19,29 +19,56 @@ const MAP_OPTIONS = {
 
 const DEFAULT_CENTER = { lat: 11.5564, lng: 104.9282 }; // Phnom Penh
 
-export default function HospitalMapSearch({ onSearch, onLocationSelect, existingHospitals = [] }) {
-  // If API key is missing, skip loading and show error directly
-  if (!GOOGLE_MAPS_API_KEY) {
-    return (
-      <div style={{
-        padding: 'var(--space-5)', background: 'var(--color-surface)',
-        border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-        marginBottom: 'var(--space-5)', display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start'
-      }}>
-        <AlertTriangle size={20} color="var(--color-danger)" style={{ marginTop: '2px', flexShrink: 0 }} />
-        <div>
-          <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 'var(--space-1)' }}>Google Maps API key is not configured</p>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', lineHeight: '1.4', marginBottom: 'var(--space-2)' }}>
-            To use map-based search, add <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>VITE_GOOGLE_MAPS_API_KEY</code> to your <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>.env</code> file.
-          </p>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-2)', fontStyle: 'italic' }}>
-            💡 You can still use the text search below to find hospitals by name
-          </p>
-        </div>
-      </div>
-    );
-  }
+function getPlacePosition(place) {
+  if (place.latitude == null || place.longitude == null) return null;
+  const lat = Number(place.latitude);
+  const lng = Number(place.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
 
+function normalizeGooglePlace(place) {
+  const location = place.geometry?.location;
+  if (!location) return null;
+
+  return {
+    place_id: place.place_id,
+    name: place.name || 'Unnamed location',
+    address: place.formatted_address || place.vicinity || '',
+    phone_number: place.international_phone_number || null,
+    latitude: location.lat(),
+    longitude: location.lng()
+  };
+}
+
+function MissingMapsKeyNotice() {
+  return (
+    <div style={{
+      padding: 'var(--space-5)', background: 'var(--color-surface)',
+      border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+      marginBottom: 'var(--space-5)', display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start'
+    }}>
+      <AlertTriangle size={20} color="var(--color-danger)" style={{ marginTop: '2px', flexShrink: 0 }} />
+      <div>
+        <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 'var(--space-1)' }}>Google Maps API key is not configured</p>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', lineHeight: '1.4', marginBottom: 'var(--space-2)' }}>
+          To use map-based search, add <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>VITE_GOOGLE_MAPS_API_KEY</code> to your <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>.env</code> file.
+        </p>
+        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-2)', fontStyle: 'italic' }}>
+          💡 You can still use the text search below to find hospitals by name
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function HospitalMapSearch(props) {
+  // If API key is missing, skip loading and show error directly.
+  if (!GOOGLE_MAPS_API_KEY) return <MissingMapsKeyNotice />;
+  return <HospitalMapSearchMap {...props} />;
+}
+
+function HospitalMapSearchMap({ onSearch, onLocationSelect, existingHospitals = [] }) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -50,20 +77,79 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
 
   const [mapCenter, setMapCenter] = useState(DEFAULT_CENTER);
   const [selectedLocation, setSelectedLocation] = useState(null);
+  const [placeResults, setPlaceResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
   const mapRef = useRef(null);
 
-  const handleMapClick = useCallback((e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
-    const location = { lat, lng };
+  const filterExistingHospitals = useCallback((results) => {
+    return results.filter((searchResult) => {
+      const resultPosition = getPlacePosition(searchResult);
 
-    setSelectedLocation(location);
-    setMapCenter(location);
+      return !existingHospitals.some((dbHospital) => {
+        const nameMatch = searchResult.name.toLowerCase().trim() === dbHospital.name.toLowerCase().trim();
+        const coordMatch = resultPosition && dbHospital.latitude && dbHospital.longitude &&
+          Math.abs(resultPosition.lat - Number(dbHospital.latitude)) < 0.001 &&
+          Math.abs(resultPosition.lng - Number(dbHospital.longitude)) < 0.001;
+        return nameMatch || coordMatch;
+      });
+    });
+  }, [existingHospitals]);
 
-    // Trigger location-based hospital search
-    handleLocationSearch(lat, lng);
+  const fitMapToPlaces = useCallback((results, searchLocation) => {
+    if (!mapRef.current || !window.google?.maps) return;
+
+    const bounds = new window.google.maps.LatLngBounds();
+    let hasBounds = false;
+
+    if (searchLocation) {
+      bounds.extend(searchLocation);
+      hasBounds = true;
+    }
+
+    results.forEach((place) => {
+      const position = getPlacePosition(place);
+      if (!position) return;
+      bounds.extend(position);
+      hasBounds = true;
+    });
+
+    if (hasBounds) {
+      mapRef.current.fitBounds(bounds, 56);
+    }
+  }, []);
+
+  const searchWithBrowserPlaces = useCallback((lat, lng) => {
+    return new Promise((resolve, reject) => {
+      if (!mapRef.current || !window.google?.maps?.places?.PlacesService) {
+        resolve([]);
+        return;
+      }
+
+      const service = new window.google.maps.places.PlacesService(mapRef.current);
+      service.nearbySearch(
+        {
+          location: { lat, lng },
+          radius: 20000,
+          keyword: 'hospital',
+          type: 'hospital'
+        },
+        (places, status) => {
+          const placesStatus = window.google.maps.places.PlacesServiceStatus;
+          if (status === placesStatus.ZERO_RESULTS) {
+            resolve([]);
+            return;
+          }
+
+          if (status !== placesStatus.OK) {
+            reject(new Error(`Places search failed: ${status}`));
+            return;
+          }
+
+          resolve((places || []).map(normalizeGooglePlace).filter(Boolean));
+        }
+      );
+    });
   }, []);
 
   const handleLocationSearch = useCallback(async (lat, lng) => {
@@ -71,21 +157,19 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
     setSearchError(null);
     try {
       // Search for hospitals near the clicked location
-      const results = await searchHospitalsByText('hospital', lat, lng);
-      // Filter out hospitals already in database
-      const filtered = results.filter((searchResult) => {
-        return !existingHospitals.some((dbHospital) => {
-          const nameMatch = searchResult.name.toLowerCase().trim() === dbHospital.name.toLowerCase().trim();
-          const coordMatch = searchResult.latitude && searchResult.longitude &&
-            Math.abs(searchResult.latitude - dbHospital.latitude) < 0.001 &&
-            Math.abs(searchResult.longitude - dbHospital.longitude) < 0.001;
-          return nameMatch || (coordMatch && dbHospital.latitude && dbHospital.longitude);
-        });
-      });
+      let results = await searchHospitalsByText('hospital', lat, lng);
+
+      if (!results.length) {
+        results = await searchWithBrowserPlaces(lat, lng);
+      }
+
+      const filtered = filterExistingHospitals(results);
+      setPlaceResults(filtered);
+      fitMapToPlaces(filtered, { lat, lng });
       onSearch(filtered, { lat, lng });
     } catch (err) {
       const status = err.response?.status;
-      let message = 'Could not search hospitals at this location';
+      let message;
       
       if (status === 503) {
         message = '❌ Backend API: GOOGLE_PLACES_API_KEY not configured on server';
@@ -98,10 +182,24 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
       }
       
       setSearchError(message);
+      setPlaceResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, [onSearch, existingHospitals]);
+  }, [filterExistingHospitals, fitMapToPlaces, onSearch, searchWithBrowserPlaces]);
+
+  const handleMapClick = useCallback((e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
+    const location = { lat, lng };
+
+    setSelectedLocation(location);
+    setMapCenter(location);
+    setPlaceResults([]);
+
+    // Trigger location-based hospital search
+    handleLocationSearch(lat, lng);
+  }, [handleLocationSearch]);
 
   const handleRecenterClick = useCallback(() => {
     if (mapRef.current) {
@@ -196,6 +294,27 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
                 }}
               />
             )}
+            {placeResults.map((place) => {
+              const position = getPlacePosition(place);
+              if (!position) return null;
+
+              return (
+                <Marker
+                  key={place.place_id || `${place.name}-${position.lat}-${position.lng}`}
+                  position={position}
+                  title={place.name}
+                  onClick={() => onLocationSelect?.(place)}
+                  icon={{
+                    path: window.google?.maps?.SymbolPath?.BACKWARD_CLOSED_ARROW,
+                    scale: 5,
+                    fillColor: '#16a34a',
+                    fillOpacity: 0.95,
+                    strokeColor: '#fff',
+                    strokeWeight: 2
+                  }}
+                />
+              );
+            })}
           </GoogleMap>
 
           <button
@@ -221,6 +340,11 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
         }}>
           Searching near: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}
           {isSearching && <Loader size={12} style={{ display: 'inline', marginLeft: '8px', animation: 'spin 1s linear infinite' }} />}
+          {!isSearching && placeResults.length > 0 && (
+            <span style={{ marginLeft: '8px', color: 'var(--color-success)', fontWeight: 700 }}>
+              {placeResults.length} place{placeResults.length === 1 ? '' : 's'} shown on map
+            </span>
+          )}
         </div>
       )}
 

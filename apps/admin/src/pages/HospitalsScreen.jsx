@@ -72,7 +72,7 @@ export default function HospitalsScreen() {
       setSearchResults(filtered);
     } catch (err) {
       const status = err.response?.status;
-      let message = 'Search failed';
+      let message;
       
       if (status === 503) {
         message = '❌ Backend API: GOOGLE_PLACES_API_KEY is not configured on the server. Please set it in your backend .env file.';
@@ -160,7 +160,7 @@ export default function HospitalsScreen() {
           {/* Map-based search */}
           <HospitalMapSearch
             existingHospitals={hospitals}
-            onSearch={(results, location) => {
+            onSearch={(results) => {
               setSearchResults(results);
               setSearchError(null);
             }}
