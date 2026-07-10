@@ -71,7 +71,20 @@ export default function HospitalsScreen() {
       });
       setSearchResults(filtered);
     } catch (err) {
-      setSearchError(err.response?.data?.message || 'Search failed — is GOOGLE_PLACES_API_KEY configured on the backend?');
+      const status = err.response?.status;
+      let message = 'Search failed';
+      
+      if (status === 503) {
+        message = '❌ Backend API: GOOGLE_PLACES_API_KEY is not configured on the server. Please set it in your backend .env file.';
+      } else if (status === 502) {
+        message = '❌ Backend: Places API request failed. Check if the API key is valid and has the right permissions.';
+      } else if (status === 401 || status === 403) {
+        message = '❌ You must be logged in as an admin to search hospitals.';
+      } else {
+        message = err.response?.data?.message || 'Search failed — check your internet connection and that the backend is running.';
+      }
+      
+      setSearchError(message);
       setSearchResults([]);
     } finally {
       setIsSearching(false);

@@ -20,6 +20,28 @@ const MAP_OPTIONS = {
 const DEFAULT_CENTER = { lat: 11.5564, lng: 104.9282 }; // Phnom Penh
 
 export default function HospitalMapSearch({ onSearch, onLocationSelect, existingHospitals = [] }) {
+  // If API key is missing, skip loading and show error directly
+  if (!GOOGLE_MAPS_API_KEY) {
+    return (
+      <div style={{
+        padding: 'var(--space-5)', background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
+        marginBottom: 'var(--space-5)', display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start'
+      }}>
+        <AlertTriangle size={20} color="var(--color-danger)" style={{ marginTop: '2px', flexShrink: 0 }} />
+        <div>
+          <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 'var(--space-1)' }}>Google Maps API key is not configured</p>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', lineHeight: '1.4', marginBottom: 'var(--space-2)' }}>
+            To use map-based search, add <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>VITE_GOOGLE_MAPS_API_KEY</code> to your <code style={{ background: 'var(--color-bg)', padding: '2px 4px', borderRadius: '3px' }}>.env</code> file.
+          </p>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-2)', fontStyle: 'italic' }}>
+            💡 You can still use the text search below to find hospitals by name
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const { isLoaded, loadError } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -62,7 +84,20 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
       });
       onSearch(filtered, { lat, lng });
     } catch (err) {
-      setSearchError(err.response?.data?.message || 'Could not search hospitals at this location');
+      const status = err.response?.status;
+      let message = 'Could not search hospitals at this location';
+      
+      if (status === 503) {
+        message = '❌ Backend API: GOOGLE_PLACES_API_KEY not configured on server';
+      } else if (status === 502) {
+        message = '❌ Places API request failed. Check backend configuration.';
+      } else if (status === 401 || status === 403) {
+        message = '❌ You must be logged in as an admin.';
+      } else {
+        message = err.response?.data?.message || 'Could not search hospitals — backend may be offline.';
+      }
+      
+      setSearchError(message);
     } finally {
       setIsSearching(false);
     }
@@ -80,13 +115,25 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
       <div style={{
         padding: 'var(--space-5)', background: 'var(--color-surface)',
         border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)',
-        marginBottom: 'var(--space-5)', display: 'flex', gap: 'var(--space-3)', alignItems: 'center'
+        marginBottom: 'var(--space-5)', display: 'flex', gap: 'var(--space-3)', alignItems: 'flex-start'
       }}>
-        <AlertTriangle size={20} color="var(--color-danger)" />
+        <AlertTriangle size={20} color="var(--color-danger)" style={{ marginTop: '2px', flexShrink: 0 }} />
         <div>
-          <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>Map failed to load</p>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>
-            Check your internet connection and that VITE_GOOGLE_MAPS_API_KEY is configured
+          <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)', marginBottom: 'var(--space-1)' }}>Maps API Error: ApiTargetBlockedMapError</p>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', lineHeight: '1.5', marginBottom: 'var(--space-2)' }}>
+            <strong>The Google Maps API key is invalid, expired, or doesn't have the necessary permissions.</strong>
+            <br /><br />
+            <strong>Quick fix checklist:</strong>
+            <br />✓ Go to Google Cloud Console → APIs & Services → Enabled APIs
+            <br />✓ Enable "Maps JavaScript API"
+            <br />✓ Go to Credentials → Edit your API key
+            <br />✓ Under "Application restrictions", add: <code style={{ background: 'var(--color-bg)', padding: '1px 3px' }}>localhost:*</code>
+            <br />✓ Restart dev server: <code style={{ background: 'var(--color-bg)', padding: '1px 3px' }}>npm run dev</code>
+            <br /><br />
+            📖 See <code style={{ background: 'var(--color-bg)', padding: '1px 3px' }}>GOOGLE_MAPS_SETUP.md</code> for detailed instructions
+          </p>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-2)', fontStyle: 'italic' }}>
+            💡 Use the text search below to find hospitals by name
           </p>
         </div>
       </div>
@@ -122,44 +169,49 @@ export default function HospitalMapSearch({ onSearch, onLocationSelect, existing
         </p>
       </div>
 
-      <div style={{ position: 'relative', marginBottom: 'var(--space-3)' }}>
-        <GoogleMap
-          ref={mapRef}
-          mapContainerStyle={MAP_CONTAINER_STYLE}
-          center={mapCenter}
-          zoom={12}
-          onClick={handleMapClick}
-          options={MAP_OPTIONS}
-        >
-          {selectedLocation && (
-            <Marker
-              position={selectedLocation}
-              title="Search location"
-              icon={{
-                path: window.google.maps.SymbolPath.CIRCLE,
-                scale: 8,
-                fillColor: '#3b82f6',
-                fillOpacity: 0.8,
-                strokeColor: '#fff',
-                strokeWeight: 2
-              }}
-            />
-          )}
-        </GoogleMap>
+      {isLoaded && !loadError && (
+        <div style={{ position: 'relative', marginBottom: 'var(--space-3)' }}>
+          <GoogleMap
+            ref={mapRef}
+            mapContainerStyle={MAP_CONTAINER_STYLE}
+            center={mapCenter}
+            zoom={12}
+            onClick={handleMapClick}
+            options={MAP_OPTIONS}
+            onLoad={(map) => {
+              mapRef.current = map;
+            }}
+          >
+            {selectedLocation && (
+              <Marker
+                position={selectedLocation}
+                title="Search location"
+                icon={{
+                  path: window.google?.maps?.SymbolPath?.CIRCLE,
+                  scale: 8,
+                  fillColor: '#3b82f6',
+                  fillOpacity: 0.8,
+                  strokeColor: '#fff',
+                  strokeWeight: 2
+                }}
+              />
+            )}
+          </GoogleMap>
 
-        <button
-          onClick={handleRecenterClick}
-          style={{
-            position: 'absolute', bottom: 'var(--space-2)', right: 'var(--space-2)',
-            padding: 'var(--space-2) var(--space-3)', background: '#fff',
-            border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
-            fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer',
-            zIndex: 10
-          }}
-        >
-          Recenter
-        </button>
-      </div>
+          <button
+            onClick={handleRecenterClick}
+            style={{
+              position: 'absolute', bottom: 'var(--space-2)', right: 'var(--space-2)',
+              padding: 'var(--space-2) var(--space-3)', background: '#fff',
+              border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)',
+              fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer',
+              zIndex: 10
+            }}
+          >
+            Recenter
+          </button>
+        </div>
+      )}
 
       {selectedLocation && (
         <div style={{
