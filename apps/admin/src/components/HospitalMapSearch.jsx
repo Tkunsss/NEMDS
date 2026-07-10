@@ -2,7 +2,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { AlertTriangle, MapPin, Loader } from 'lucide-react';
-import { searchHospitalsByText } from '../api/places';
+import { searchHospitalsByText, searchHospitalsWithBrowserPlaces } from '../api/places';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '400px' };
@@ -25,20 +25,6 @@ function getPlacePosition(place) {
   const lng = Number(place.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return { lat, lng };
-}
-
-function normalizeGooglePlace(place) {
-  const location = place.geometry?.location;
-  if (!location) return null;
-
-  return {
-    place_id: place.place_id,
-    name: place.name || 'Unnamed location',
-    address: place.formatted_address || place.vicinity || '',
-    phone_number: place.international_phone_number || null,
-    latitude: location.lat(),
-    longitude: location.lng()
-  };
 }
 
 function MissingMapsKeyNotice() {
@@ -119,48 +105,15 @@ function HospitalMapSearchMap({ onSearch, onLocationSelect, existingHospitals = 
     }
   }, []);
 
-  const searchWithBrowserPlaces = useCallback((lat, lng) => {
-    return new Promise((resolve, reject) => {
-      if (!mapRef.current || !window.google?.maps?.places?.PlacesService) {
-        resolve([]);
-        return;
-      }
-
-      const service = new window.google.maps.places.PlacesService(mapRef.current);
-      service.nearbySearch(
-        {
-          location: { lat, lng },
-          radius: 20000,
-          keyword: 'hospital',
-          type: 'hospital'
-        },
-        (places, status) => {
-          const placesStatus = window.google.maps.places.PlacesServiceStatus;
-          if (status === placesStatus.ZERO_RESULTS) {
-            resolve([]);
-            return;
-          }
-
-          if (status !== placesStatus.OK) {
-            reject(new Error(`Places search failed: ${status}`));
-            return;
-          }
-
-          resolve((places || []).map(normalizeGooglePlace).filter(Boolean));
-        }
-      );
-    });
-  }, []);
-
   const handleLocationSearch = useCallback(async (lat, lng) => {
     setIsSearching(true);
     setSearchError(null);
     try {
       // Search for hospitals near the clicked location
-      let results = await searchHospitalsByText('hospital', lat, lng);
+      let results = await searchHospitalsWithBrowserPlaces('hospital', lat, lng);
 
       if (!results.length) {
-        results = await searchWithBrowserPlaces(lat, lng);
+        results = await searchHospitalsByText('hospital', lat, lng);
       }
 
       const filtered = filterExistingHospitals(results);
@@ -186,7 +139,7 @@ function HospitalMapSearchMap({ onSearch, onLocationSelect, existingHospitals = 
     } finally {
       setIsSearching(false);
     }
-  }, [filterExistingHospitals, fitMapToPlaces, onSearch, searchWithBrowserPlaces]);
+  }, [filterExistingHospitals, fitMapToPlaces, onSearch]);
 
   const handleMapClick = useCallback((e) => {
     const lat = e.latLng.lat();

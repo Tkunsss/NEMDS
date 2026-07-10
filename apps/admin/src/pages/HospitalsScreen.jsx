@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, X, Building2, Search, MapPin, CheckCircle2, Trash2 } from 'lucide-react';
 import { listHospitals, createHospital, deleteHospital } from '../api/admin';
-import { searchHospitalsByText } from '../api/places';
+import { searchHospitalsByText, searchHospitalsWithBrowserPlaces } from '../api/places';
 import HospitalMapSearch from '../components/HospitalMapSearch';
 
 export default function HospitalsScreen() {
@@ -58,7 +58,11 @@ export default function HospitalsScreen() {
     setIsSearching(true);
     setSearchError(null);
     try {
-      const results = await searchHospitalsByText(query.trim());
+      let results = await searchHospitalsWithBrowserPlaces(query.trim());
+      if (!results.length) {
+        results = await searchHospitalsByText(query.trim());
+      }
+
       // Filter out hospitals already in database
       const filtered = results.filter((searchResult) => {
         return !hospitals.some((dbHospital) => {
