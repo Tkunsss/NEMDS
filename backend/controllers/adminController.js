@@ -58,7 +58,7 @@ async function updateUser(req, res) {
     }
     if (email !== undefined) {
       fields.push('email = ?');
-      values.push(email);
+      values.push(email ? email : null);
     }
     if (role !== undefined) {
       fields.push('role = ?');
@@ -77,9 +77,26 @@ async function updateUser(req, res) {
     await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`, values);
 
     const user = await UserModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
     return res.json({ success: true, data: user });
   } catch (error) {
     console.error('updateUser error:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      const duplicateField = error.sqlMessage?.includes('phone_number')
+        ? 'phone number'
+        : error.sqlMessage?.includes('email')
+          ? 'email'
+          : 'value';
+      return res.status(409).json({ success: false, message: `That ${duplicateField} is already in use` });
+    }
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ success: false, message: 'Selected hospital does not exist' });
+    }
+    if (error.code === 'WARN_DATA_TRUNCATED') {
+      return res.status(400).json({ success: false, message: 'Invalid user role or field value' });
+    }
     return res.status(500).json({ success: false, message: 'Failed to update user' });
   }
 }
