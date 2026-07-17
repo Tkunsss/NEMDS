@@ -4,6 +4,9 @@ const HospitalModel = require('../models/hospitalModel');
 const { pool } = require('../config/db');
 const { buildSystemRecords } = require('../utils/systemRecords');
 
+const STAFF_ROLES = ['dispatcher', 'driver', 'admin'];
+const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
+
 async function listUsers(req, res) {
   try {
     const users = await UserModel.findAll();
@@ -19,6 +22,15 @@ async function createStaffUser(req, res) {
     const { full_name, phone_number, email, password, role, hospital_id } = req.body;
     if (!full_name || !phone_number || !password || !role) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+    if (!STAFF_ROLES.includes(role)) {
+      return res.status(400).json({ success: false, message: 'Invalid staff role' });
+    }
+    if (HOSPITAL_REQUIRED_ROLES.includes(role) && !hospital_id) {
+      return res.status(400).json({ success: false, message: 'A hospital is required for dispatcher and driver accounts' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
     }
 
     const bcrypt = require('bcryptjs');
@@ -43,7 +55,7 @@ async function createStaffUser(req, res) {
 async function updateUser(req, res) {
   try {
     const userId = req.params.id;
-    const { full_name, phone_number, email, role, hospital_id } = req.body;
+    const { full_name, phone_number, email, password, role, hospital_id } = req.body;
 
     const fields = [];
     const values = [];
@@ -61,12 +73,27 @@ async function updateUser(req, res) {
       values.push(email ? email : null);
     }
     if (role !== undefined) {
+      if (!STAFF_ROLES.includes(role)) {
+        return res.status(400).json({ success: false, message: 'Invalid staff role' });
+      }
       fields.push('role = ?');
       values.push(role);
     }
     if (hospital_id !== undefined) {
       fields.push('hospital_id = ?');
       values.push(hospital_id || null);
+    }
+    if (password !== undefined && password !== '') {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+      const bcrypt = require('bcryptjs');
+      fields.push('password_hash = ?');
+      values.push(await bcrypt.hash(password, 10));
+    }
+
+    if (role !== undefined && HOSPITAL_REQUIRED_ROLES.includes(role) && !hospital_id) {
+      return res.status(400).json({ success: false, message: 'A hospital is required for dispatcher and driver accounts' });
     }
 
     if (!fields.length) {

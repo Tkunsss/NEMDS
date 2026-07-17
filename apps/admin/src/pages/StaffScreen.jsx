@@ -12,7 +12,7 @@ export default function StaffScreen() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', email: '', hospital_id: '' });
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +30,7 @@ export default function StaffScreen() {
   }
 
   const formNeedsHospital = HOSPITAL_REQUIRED_ROLES.includes(form.role);
-  const editNeedsHospital = editingUser != null && HOSPITAL_REQUIRED_ROLES.includes(users.find((u) => u.user_id === editingUser)?.role);
+  const editNeedsHospital = editingUser != null && HOSPITAL_REQUIRED_ROLES.includes(editForm.role);
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -57,17 +57,26 @@ export default function StaffScreen() {
 
   function startEdit(u) {
     setEditingUser(u.user_id);
-    setEditForm({ full_name: u.full_name, email: u.email || '', hospital_id: u.hospital_id || '' });
+    setEditForm({ full_name: u.full_name, email: u.email || '', password: '', role: u.role, hospital_id: u.hospital_id || '' });
     setError(null);
   }
 
   async function handleSaveEdit(userId) {
+    if (editNeedsHospital && !editForm.hospital_id) {
+      setError('A hospital is required for dispatcher and driver accounts');
+      return;
+    }
+    if (editForm.password && editForm.password.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
       await updateUser(userId, {
         ...editForm,
-        hospital_id: editForm.hospital_id ? Number(editForm.hospital_id) : null
+        password: editForm.password || undefined,
+        hospital_id: editNeedsHospital && editForm.hospital_id ? Number(editForm.hospital_id) : null
       });
       setEditingUser(null);
       refresh();
@@ -174,16 +183,44 @@ export default function StaffScreen() {
                         <input
                           value={editForm.full_name}
                           onChange={(e) => setEditForm((f) => ({ ...f, full_name: e.target.value }))}
+                          style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%', marginBottom: 'var(--space-2)' }}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email (optional)"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))}
+                          style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%', marginBottom: 'var(--space-2)' }}
+                        />
+                        <input
+                          type="password"
+                          placeholder="New password (leave blank)"
+                          value={editForm.password}
+                          minLength={6}
+                          onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
                           style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%' }}
                         />
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>{u.phone_number}</td>
-                      <td style={{ padding: 'var(--space-2) var(--space-4)', fontSize: 'var(--text-sm)', textTransform: 'capitalize' }}>{u.role}</td>
                       <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                        {needsHospital ? (
+                        <select
+                          value={editForm.role}
+                          onChange={(e) => setEditForm((f) => ({
+                            ...f,
+                            role: e.target.value,
+                            hospital_id: HOSPITAL_REQUIRED_ROLES.includes(e.target.value) ? f.hospital_id : ''
+                          }))}
+                          style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%', textTransform: 'capitalize' }}
+                        >
+                          {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
+                        {editNeedsHospital ? (
                           <select
                             value={editForm.hospital_id}
                             onChange={(e) => setEditForm((f) => ({ ...f, hospital_id: e.target.value }))}
+                            required
                             style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%' }}
                           >
                             <option value="">Select hospital…</option>
