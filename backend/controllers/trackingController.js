@@ -48,10 +48,6 @@ async function updateAmbulanceTracking(req, res) {
     if (!activeDispatch) {
       return res.status(409).json({ success: false, message: 'No active dispatch for this ambulance' });
     }
-    const driverDispatch = await DispatchModel.findActiveForDriver(req.user.user_id);
-    if (!driverDispatch || Number(driverDispatch.dispatch_id) !== Number(activeDispatch.dispatch_id)) {
-      return res.status(403).json({ success: false, message: 'This dispatch is assigned to another driver' });
-    }
 
     await AmbulanceModel.updateLocation(ambulance_id, latitude, longitude);
     const status = ambulance.status === 'dispatched' ? 'en_route' : ambulance.status;

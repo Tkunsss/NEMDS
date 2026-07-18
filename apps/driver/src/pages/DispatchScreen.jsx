@@ -134,21 +134,6 @@ export default function DispatchScreen() {
           </span>
         </div>
 
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)',
-          padding: 'var(--space-3)', border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)', background: 'var(--color-panel)', marginBottom: 'var(--space-4)'
-        }}>
-          <div>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '2px' }}>ASSIGNED TO</p>
-            <p style={{ fontSize: 'var(--text-sm)', fontWeight: 800 }}>{user?.full_name || 'You'}</p>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '2px' }}>AMBULANCE</p>
-            <p style={{ fontSize: 'var(--text-sm)', fontWeight: 800 }}>{ambulance?.plate_number || `#${dispatch.ambulance_id}`}</p>
-          </div>
-        </div>
-
         <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, marginBottom: 'var(--space-1)', textTransform: 'capitalize' }}>
           {dispatch.emergency_type?.replace('_', ' ')} call
         </h1>

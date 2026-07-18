@@ -5,13 +5,12 @@ import { listUsers, createStaffUser, updateUser, deactivateUser, reactivateUser,
 
 const ROLES = ['dispatcher', 'driver', 'admin'];
 const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
-const emptyForm = { full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '' };
 
 export default function StaffScreen() {
   const [users, setUsers] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [error, setError] = useState(null);
@@ -47,7 +46,7 @@ export default function StaffScreen() {
         hospital_id: formNeedsHospital ? Number(form.hospital_id) : null
       });
       setShowForm(false);
-      setForm(emptyForm);
+      setForm({ full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
       refresh();
     } catch (err) {
       setError(err.response?.data?.message || 'Could not create user');
@@ -58,13 +57,7 @@ export default function StaffScreen() {
 
   function startEdit(u) {
     setEditingUser(u.user_id);
-    setEditForm({
-      full_name: u.full_name,
-      email: u.email || '',
-      password: '',
-      role: u.role,
-      hospital_id: u.hospital_id || ''
-    });
+    setEditForm({ full_name: u.full_name, email: u.email || '', password: '', role: u.role, hospital_id: u.hospital_id || '' });
     setError(null);
   }
 
@@ -174,7 +167,7 @@ export default function StaffScreen() {
         <table>
           <thead>
             <tr style={{ background: 'var(--color-bg)' }}>
-              {['Name', 'Phone', 'Role', 'Hospital', 'Task routing', 'Status', ''].map((h) => (
+              {['Name', 'Phone', 'Role', 'Hospital', 'Status', ''].map((h) => (
                 <th key={h} style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontWeight: 700, textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
@@ -235,11 +228,6 @@ export default function StaffScreen() {
                           </select>
                         ) : <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>—</span>}
                       </td>
-                      <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                        <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>
-                          {editForm.role === 'driver' ? 'Tasks route to this driver account' : '—'}
-                        </span>
-                      </td>
                       <td colSpan={2} style={{ padding: 'var(--space-2) var(--space-4)', textAlign: 'right' }}>
                         <button onClick={() => handleSaveEdit(u.user_id)} disabled={isSubmitting} style={{ color: 'var(--color-success)', fontWeight: 700, fontSize: 'var(--text-xs)', marginRight: 'var(--space-3)' }}>
                           Save
@@ -257,16 +245,6 @@ export default function StaffScreen() {
                       <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)' }}>
                         {needsHospital
                           ? (u.hospital_name || <span style={{ color: 'var(--color-danger)' }}>Unassigned</span>)
-                          : <span style={{ color: 'var(--color-text-faint)' }}>—</span>}
-                      </td>
-                      <td style={{ padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
-                        {u.role === 'driver'
-                          ? (
-                            <>
-                              <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>Driver account</p>
-                              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>Receives dispatches when assigned to an ambulance</p>
-                            </>
-                          )
                           : <span style={{ color: 'var(--color-text-faint)' }}>—</span>}
                       </td>
                       <td style={{ padding: 'var(--space-3) var(--space-4)' }}>

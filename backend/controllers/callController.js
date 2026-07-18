@@ -9,16 +9,6 @@ const { findNearest } = require('../utils/distance');
 const { shouldReleaseAmbulanceOnCancel } = require('../utils/dispatchRouting');
 const { resolveCallerLocation } = require('../utils/callerLocation');
 
-async function requireDriverCall(req, res, callId) {
-  if (req.user.role !== 'driver') return true;
-  const dispatch = await DispatchModel.findActiveForDriver(req.user.user_id);
-  if (!dispatch || Number(dispatch.call_id) !== Number(callId)) {
-    res.status(403).json({ success: false, message: 'This call is assigned to another driver' });
-    return false;
-  }
-  return true;
-}
-
 // POST /api/calls
 // Caller app: submit a new emergency. No login or phone number required —
 // the caller has already confirmed their location on the map before this
@@ -160,9 +150,10 @@ async function updateCallStatus(req, res) {
       return res.status(400).json({ success: false, message: 'Invalid status value' });
     }
 
-    // Defense in depth: dispatchers can only update calls routed to their
-    // hospital, and drivers can only update the call currently assigned to
-    // their active dispatch.
+    // Defense in depth: a dispatcher can only update calls routed to their
+    // own hospital, even if they somehow guess another call's ID. Drivers
+    // are checked via their active dispatch elsewhere, so this only
+    // restricts the dispatcher role specifically.
     if (req.user.role === 'dispatcher') {
       const existing = await CallModel.findById(req.params.id);
       if (!existing) return res.status(404).json({ success: false, message: 'Call not found' });
@@ -170,7 +161,6 @@ async function updateCallStatus(req, res) {
         return res.status(403).json({ success: false, message: 'This call is not assigned to your hospital' });
       }
     }
-    if (!(await requireDriverCall(req, res, req.params.id))) return;
 
     await CallModel.updateStatus(req.params.id, status);
     await StatusLogModel.add({
@@ -247,7 +237,6 @@ async function getLatestLocation(req, res) {
   try {
     const call = await CallModel.findById(req.params.id);
     if (!call) return res.status(404).json({ success: false, message: 'Call not found' });
-    if (!(await requireDriverCall(req, res, call.call_id))) return;
 
     const latest = await CallerLocationModel.findLatest(call.call_id);
     const resolvedLocation = resolveCallerLocation(call, latest);

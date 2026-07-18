@@ -34,23 +34,17 @@ const AmbulanceModel = {
   async findAvailableWithDriver(hospital_id = null) {
     const query = hospital_id
       ? `SELECT a.*, u.full_name AS driver_name, u.phone_number AS driver_phone,
-                 dd.device_id, dd.device_label, dd.device_identifier,
-                 dd.platform AS device_platform, dd.is_active AS device_is_active,
                  h.latitude AS home_hospital_latitude, h.longitude AS home_hospital_longitude
          FROM ambulances a
          JOIN driver_assignments da ON da.ambulance_id = a.ambulance_id AND da.is_current = TRUE
          JOIN users u ON u.user_id = da.user_id
-         LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
          LEFT JOIN hospitals h ON h.hospital_id = a.home_hospital_id
          WHERE a.status = 'available' AND a.home_hospital_id = ? AND a.deleted_at IS NULL`
       : `SELECT a.*, u.full_name AS driver_name, u.phone_number AS driver_phone,
-                 dd.device_id, dd.device_label, dd.device_identifier,
-                 dd.platform AS device_platform, dd.is_active AS device_is_active,
                  h.latitude AS home_hospital_latitude, h.longitude AS home_hospital_longitude
          FROM ambulances a
          JOIN driver_assignments da ON da.ambulance_id = a.ambulance_id AND da.is_current = TRUE
          JOIN users u ON u.user_id = da.user_id
-         LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
          LEFT JOIN hospitals h ON h.hospital_id = a.home_hospital_id
          WHERE a.status = 'available' AND a.deleted_at IS NULL`;
     const params = hospital_id ? [hospital_id] : [];

@@ -2,8 +2,6 @@
 const DriverAssignmentModel = require('../models/driverAssignmentModel');
 const UserModel = require('../models/userModel');
 const AmbulanceModel = require('../models/ambulanceModel');
-const DriverDeviceModel = require('../models/driverDeviceModel');
-const DispatchModel = require('../models/dispatchModel');
 
 // GET /api/driver-assignments
 // Dispatcher/admin: see which drivers are currently on which ambulance.
@@ -86,22 +84,7 @@ async function assignDriver(req, res) {
       }
     }
 
-    const activeAmbulanceDispatch = await DispatchModel.findActiveForAmbulance(ambulance_id);
-    if (activeAmbulanceDispatch) {
-      return res.status(409).json({ success: false, message: 'This ambulance has an active dispatch and cannot be reassigned yet' });
-    }
-
-    const activeDriverDispatch = await DispatchModel.findActiveForDriver(user_id);
-    if (activeDriverDispatch) {
-      return res.status(409).json({ success: false, message: 'This driver has an active dispatch and cannot be reassigned yet' });
-    }
-
-    const device = await DriverDeviceModel.findByDriver(user_id);
-    if (!device) {
-      await DriverDeviceModel.ensureForDriver(driver);
-    }
-
-    await DriverAssignmentModel.assign({ user_id, ambulance_id, assigned_by_user_id: req.user.user_id });
+    await DriverAssignmentModel.assign({ user_id, ambulance_id });
     const assignment = await DriverAssignmentModel.findCurrentByAmbulance(ambulance_id);
 
     res.status(201).json({ success: true, data: assignment });
@@ -120,11 +103,6 @@ async function unassignDriver(req, res) {
       if (ambulance.home_hospital_id !== req.user.hospital_id) {
         return res.status(403).json({ success: false, message: 'This ambulance is not based at your hospital' });
       }
-    }
-
-    const activeDispatch = await DispatchModel.findActiveForAmbulance(req.params.ambulanceId);
-    if (activeDispatch) {
-      return res.status(409).json({ success: false, message: 'This ambulance has an active dispatch and cannot be unassigned yet' });
     }
 
     await DriverAssignmentModel.unassign(req.params.ambulanceId);

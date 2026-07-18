@@ -62,14 +62,13 @@ export default function CrewScreen() {
     <div style={{ padding: 'var(--space-6)' }}>
       <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>Crew assignment</h1>
       <p style={{ color: 'var(--color-text-soft)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-5)' }}>
-        Assign one driver to each ambulance. When that ambulance is dispatched, the task goes to that driver account.
+        An ambulance needs an assigned driver before it can be dispatched to a call.
       </p>
 
       <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
         {ambulances.map((amb) => {
           const assignment = driverFor(amb.ambulance_id);
           const isSelected = selectedAmbulance === amb.ambulance_id;
-          const isBusy = !['available', 'out_of_service'].includes(amb.status);
           return (
             <div key={amb.ambulance_id} style={{
               padding: 'var(--space-4)', background: 'var(--color-panel)',
@@ -83,11 +82,6 @@ export default function CrewScreen() {
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', textTransform: 'capitalize' }}>
                     {amb.vehicle_type} · {amb.status.replace('_', ' ')}
                   </p>
-                  {assignment && isBusy && (
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-critical)', fontWeight: 700, marginTop: '2px' }}>
-                      Active task locked to {assignment.driver_name}
-                    </p>
-                  )}
                 </div>
               </div>
 
@@ -99,10 +93,8 @@ export default function CrewScreen() {
                   </div>
                   <button
                     onClick={() => handleUnassign(amb.ambulance_id)}
-                    disabled={isBusy}
-                    style={{ padding: 'var(--space-2)', color: 'var(--color-critical)', opacity: isBusy ? 0.35 : 1 }}
+                    style={{ padding: 'var(--space-2)', color: 'var(--color-critical)' }}
                     aria-label="Unassign driver"
-                    title={isBusy ? 'Complete or cancel the active task before changing this crew' : 'Unassign driver'}
                   >
                     <UserMinus size={18} />
                   </button>
@@ -110,14 +102,12 @@ export default function CrewScreen() {
               ) : (
                 <button
                   onClick={() => { setSelectedAmbulance(amb.ambulance_id); setSelectedDriver(''); setError(null); }}
-                  disabled={isBusy}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '6px',
                     padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
                     background: 'var(--color-panel-raised)', color: 'var(--color-moderate)',
-                    fontSize: 'var(--text-xs)', fontWeight: 600, opacity: isBusy ? 0.35 : 1
+                    fontSize: 'var(--text-xs)', fontWeight: 600
                   }}
-                  title={isBusy ? 'Complete or cancel the active task before assigning a driver' : 'Assign driver'}
                 >
                   <UserCheck size={14} /> Assign driver
                 </button>

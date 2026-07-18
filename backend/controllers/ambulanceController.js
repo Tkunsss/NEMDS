@@ -2,16 +2,6 @@
 const AmbulanceModel = require('../models/ambulanceModel');
 const HospitalModel = require('../models/hospitalModel');
 
-async function requireDriverAmbulance(req, res) {
-  if (req.user.role !== 'driver') return true;
-  const ambulance = await AmbulanceModel.findByDriverUserId(req.user.user_id);
-  if (!ambulance || Number(ambulance.ambulance_id) !== Number(req.params.id)) {
-    res.status(403).json({ success: false, message: 'This ambulance is assigned to another driver' });
-    return false;
-  }
-  return true;
-}
-
 // GET /api/ambulances
 // Dispatchers only see their own hospital's fleet; admin sees everything.
 async function listAmbulances(req, res) {
@@ -59,7 +49,6 @@ async function updateLocation(req, res) {
     if (latitude === undefined || longitude === undefined) {
       return res.status(400).json({ success: false, message: 'latitude and longitude are required' });
     }
-    if (!(await requireDriverAmbulance(req, res))) return;
     await AmbulanceModel.updateLocation(req.params.id, latitude, longitude);
 
     // TODO: io.emit ambulance location to dispatcher console + caller tracking screen
@@ -79,7 +68,6 @@ async function updateStatus(req, res) {
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid status' });
     }
-    if (!(await requireDriverAmbulance(req, res))) return;
     await AmbulanceModel.updateStatus(req.params.id, status);
     res.json({ success: true, message: 'Status updated' });
   } catch (err) {

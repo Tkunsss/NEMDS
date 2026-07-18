@@ -175,7 +175,7 @@ export default function ActiveCallsScreen() {
           </div>
 
           <div style={{ marginBottom: 'var(--space-5)' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>NEAREST CREWED AMBULANCES</p>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>NEAREST AMBULANCES (WITH DRIVER)</p>
             {ambulances.length === 0 && (
               <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
                 No crewed ambulances available. Assign a driver to an ambulance on the Crew screen first.
@@ -203,14 +203,7 @@ export default function ActiveCallsScreen() {
                   </div>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', textTransform: 'capitalize' }}>{amb.vehicle_type}</p>
                   {amb.driver_name && (
-                    <>
-                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px', fontWeight: 700 }}>
-                        Task recipient: {amb.driver_name}
-                      </p>
-                      {amb.driver_phone && (
-                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{amb.driver_phone}</p>
-                      )}
-                    </>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px' }}>Driver: {amb.driver_name}</p>
                   )}
                 </button>
               ))}
@@ -237,11 +230,7 @@ export default function ActiveCallsScreen() {
               opacity: (!selectedAmbulance || isDispatching) ? 0.5 : 1
             }}
           >
-            {isDispatching
-              ? 'Dispatching…'
-              : selectedAmbulance
-                ? `Dispatch to ${ambulances.find((amb) => String(amb.ambulance_id) === selectedAmbulance)?.driver_name || 'driver'}`
-                : 'Select driver crew'}
+            {isDispatching ? 'Dispatching…' : 'Dispatch ambulance'}
           </button>
         </div>
       )}

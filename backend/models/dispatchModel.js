@@ -2,11 +2,11 @@
 const { pool } = require('../config/db');
 
 const DispatchModel = {
-  async create({ call_id, dispatcher_user_id, ambulance_id, driver_user_id = null, destination_hospital_id = null, notes = null }) {
+  async create({ call_id, dispatcher_user_id, ambulance_id, destination_hospital_id = null, notes = null }) {
     const [result] = await pool.query(
-      `INSERT INTO dispatches (call_id, dispatcher_user_id, ambulance_id, driver_user_id, destination_hospital_id, notes)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [call_id, dispatcher_user_id, ambulance_id, driver_user_id, destination_hospital_id, notes]
+      `INSERT INTO dispatches (call_id, dispatcher_user_id, ambulance_id, destination_hospital_id, notes)
+       VALUES (?, ?, ?, ?, ?)`,
+      [call_id, dispatcher_user_id, ambulance_id, destination_hospital_id, notes]
     );
     return result.insertId;
   },
@@ -69,14 +69,13 @@ const DispatchModel = {
               hh.name AS ambulance_hospital_name, hh.latitude AS ambulance_lat, hh.longitude AS ambulance_lng
        FROM dispatches d
        JOIN ambulances a ON a.ambulance_id = d.ambulance_id
-       LEFT JOIN driver_assignments da ON da.ambulance_id = a.ambulance_id AND da.is_current = TRUE
+       JOIN driver_assignments da ON da.ambulance_id = a.ambulance_id AND da.is_current = TRUE
        JOIN emergency_calls ec ON ec.call_id = d.call_id
        LEFT JOIN hospitals h ON h.hospital_id = d.destination_hospital_id
        LEFT JOIN hospitals hh ON hh.hospital_id = a.home_hospital_id
-       WHERE (d.driver_user_id = ? OR (d.driver_user_id IS NULL AND da.user_id = ?))
-         AND ec.status NOT IN ('completed', 'cancelled')
+       WHERE da.user_id = ? AND ec.status NOT IN ('completed', 'cancelled')
        ORDER BY d.dispatched_at DESC LIMIT 1`,
-      [user_id, user_id]
+      [user_id]
     );
     return rows[0] || null;
   },
