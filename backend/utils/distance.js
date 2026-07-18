@@ -41,11 +41,16 @@ function sortByDistance(items, refLat, refLng, options = {}) {
     .sort((a, b) => a.distance_km - b.distance_km);
 }
 
-// Just the single closest item, or null if the list is empty / none have
-// coordinates. Used for auto-routing a new call to its nearest hospital.
+// Just the single closest item, or a fallback hospital when the list has no
+// coordinate-bearing entries. Used for auto-routing a new call to a hospital
+// even if no coordinate-based match is possible.
 function findNearest(items, refLat, refLng, opts = {}) {
+  if (!Array.isArray(items) || items.length === 0) return null;
+
   const sorted = sortByDistance(items, refLat, refLng, opts);
-  return sorted[0] || null;
+  if (sorted.length > 0) return sorted[0];
+
+  return items[0];
 }
 
 module.exports = { distanceKm, sortByDistance, findNearest };

@@ -122,6 +122,13 @@ const CallModel = {
     );
   },
 
+  async setAssignedHospital(call_id, assigned_hospital_id) {
+    await pool.query(
+      `UPDATE emergency_calls SET assigned_hospital_id = ? WHERE call_id = ?`,
+      [assigned_hospital_id, call_id]
+    );
+  },
+
   async setAIClassification(call_id, { ai_classification_label, ai_confidence }) {
     await pool.query(
       `UPDATE emergency_calls SET ai_classification_label = ?, ai_confidence = ? WHERE call_id = ?`,

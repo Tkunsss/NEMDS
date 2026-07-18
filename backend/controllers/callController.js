@@ -41,6 +41,11 @@ async function createCall(req, res) {
     const allHospitals = await HospitalModel.findAll();
     const nearest = findNearest(allHospitals, latitude, longitude, { latKey: 'latitude', lngKey: 'longitude' });
     const assigned_hospital_id = nearest ? nearest.hospital_id : null;
+    const routeNote = assigned_hospital_id
+      ? `Routed to ${nearest.name}`
+      : allHospitals.length > 0
+        ? `Routed to ${nearest.name} (fallback)`
+        : 'Could not auto-route — no hospitals available';
 
     const { call_id, emergency_id } = await CallModel.create({
       caller_user_id,
@@ -57,7 +62,7 @@ async function createCall(req, res) {
     await StatusLogModel.add({
       call_id,
       status: 'pending',
-      note: assigned_hospital_id ? `Routed to ${nearest.name}` : 'Could not auto-route — no hospital with coordinates available',
+      note: routeNote,
       changed_by_user_id: caller_user_id
     });
 
@@ -251,7 +256,25 @@ async function getLatestLocation(req, res) {
 async function getUnassignedCalls(req, res) {
   try {
     const calls = await CallModel.findUnassigned();
-    res.json({ success: true, data: calls });
+    const allHospitals = await HospitalModel.findAll();
+
+    const reconciledCalls = [];
+    for (const call of calls) {
+      if (call.assigned_hospital_id != null) {
+        reconciledCalls.push(call);
+        continue;
+      }
+
+      const nearest = findNearest(allHospitals, call.latitude, call.longitude, { latKey: 'latitude', lngKey: 'longitude' });
+      if (nearest) {
+        await CallModel.setAssignedHospital(call.call_id, nearest.hospital_id);
+        reconciledCalls.push({ ...call, assigned_hospital_id: nearest.hospital_id });
+      } else {
+        reconciledCalls.push(call);
+      }
+    }
+
+    res.json({ success: true, data: reconciledCalls });
   } catch (err) {
     console.error('getUnassignedCalls error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
