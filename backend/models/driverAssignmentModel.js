@@ -4,7 +4,7 @@ const { pool } = require('../config/db');
 const DriverAssignmentModel = {
   // Ends any existing current assignment for this ambulance, then creates a new one.
   // An ambulance can only have one current driver at a time.
-  async assign({ user_id, ambulance_id }) {
+  async assign({ user_id, ambulance_id, assigned_by_user_id = null }) {
     await pool.query(
       `UPDATE driver_assignments SET is_current = FALSE, shift_end = NOW()
        WHERE ambulance_id = ? AND is_current = TRUE`,
@@ -17,9 +17,9 @@ const DriverAssignmentModel = {
       [user_id]
     );
     const [result] = await pool.query(
-      `INSERT INTO driver_assignments (user_id, ambulance_id, shift_start, is_current)
-       VALUES (?, ?, NOW(), TRUE)`,
-      [user_id, ambulance_id]
+      `INSERT INTO driver_assignments (user_id, ambulance_id, assigned_by_user_id, shift_start, is_current)
+       VALUES (?, ?, ?, NOW(), TRUE)`,
+      [user_id, ambulance_id, assigned_by_user_id]
     );
     return result.insertId;
   },
@@ -34,9 +34,12 @@ const DriverAssignmentModel = {
 
   async findCurrentByAmbulance(ambulance_id) {
     const [rows] = await pool.query(
-      `SELECT da.*, u.full_name AS driver_name, u.phone_number AS driver_phone
+      `SELECT da.*, u.full_name AS driver_name, u.phone_number AS driver_phone,
+              dd.device_id, dd.device_label, dd.device_identifier,
+              dd.platform AS device_platform, dd.is_active AS device_is_active
        FROM driver_assignments da
        JOIN users u ON u.user_id = da.user_id
+       LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
        WHERE da.ambulance_id = ? AND da.is_current = TRUE
        LIMIT 1`,
       [ambulance_id]
@@ -59,17 +62,25 @@ const DriverAssignmentModel = {
     const query = hospital_id
       ? `SELECT da.assignment_id, da.user_id, da.ambulance_id, da.shift_start,
                 u.full_name AS driver_name, u.phone_number AS driver_phone,
-                a.plate_number
+                dd.device_id, dd.device_label, dd.device_identifier,
+                dd.platform AS device_platform, dd.is_active AS device_is_active,
+                a.plate_number, dispatcher.full_name AS assigned_by_name
          FROM driver_assignments da
          JOIN users u ON u.user_id = da.user_id
+         LEFT JOIN users dispatcher ON dispatcher.user_id = da.assigned_by_user_id
          JOIN ambulances a ON a.ambulance_id = da.ambulance_id
+         LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
          WHERE da.is_current = TRUE AND a.home_hospital_id = ?`
       : `SELECT da.assignment_id, da.user_id, da.ambulance_id, da.shift_start,
                 u.full_name AS driver_name, u.phone_number AS driver_phone,
-                a.plate_number
+                dd.device_id, dd.device_label, dd.device_identifier,
+                dd.platform AS device_platform, dd.is_active AS device_is_active,
+                a.plate_number, dispatcher.full_name AS assigned_by_name
          FROM driver_assignments da
          JOIN users u ON u.user_id = da.user_id
+         LEFT JOIN users dispatcher ON dispatcher.user_id = da.assigned_by_user_id
          JOIN ambulances a ON a.ambulance_id = da.ambulance_id
+         LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
          WHERE da.is_current = TRUE`;
     const params = hospital_id ? [hospital_id] : [];
     const [rows] = await pool.query(query, params);

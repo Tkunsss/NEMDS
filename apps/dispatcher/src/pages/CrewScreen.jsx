@@ -62,7 +62,7 @@ export default function CrewScreen() {
     <div style={{ padding: 'var(--space-6)' }}>
       <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800, marginBottom: 'var(--space-2)' }}>Crew assignment</h1>
       <p style={{ color: 'var(--color-text-soft)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-5)' }}>
-        An ambulance needs an assigned driver before it can be dispatched to a call.
+        A dispatcher can manage multiple drivers. Each ambulance needs an assigned driver with their own device before it can be dispatched.
       </p>
 
       <div style={{ display: 'grid', gap: 'var(--space-3)' }}>
@@ -90,6 +90,9 @@ export default function CrewScreen() {
                   <div style={{ textAlign: 'right' }}>
                     <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--color-success)' }}>{assignment.driver_name}</p>
                     <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{assignment.driver_phone}</p>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                      {assignment.device_label || 'Driver device'} · {assignment.device_identifier || assignment.driver_phone}
+                    </p>
                   </div>
                   <button
                     onClick={() => handleUnassign(amb.ambulance_id)}
@@ -151,6 +154,9 @@ export default function CrewScreen() {
               >
                 <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{d.full_name}</p>
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{d.phone_number}</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                  {d.device_label || 'Driver device'} · {d.device_identifier || d.phone_number}
+                </p>
               </button>
             ))}
           </div>

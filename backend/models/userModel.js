@@ -30,9 +30,12 @@ const UserModel = {
   async findById(user_id) {
     const [rows] = await pool.query(
       `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
-              u.is_active, u.created_at, h.name AS hospital_name
+              u.is_active, u.created_at, h.name AS hospital_name,
+              dd.device_id, dd.device_label, dd.device_identifier, dd.platform AS device_platform,
+              dd.is_active AS device_is_active, dd.last_seen_at AS device_last_seen_at
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
        WHERE u.user_id = ? LIMIT 1`,
       [user_id]
     );
@@ -42,9 +45,12 @@ const UserModel = {
   async findAllByRole(role) {
     const [rows] = await pool.query(
       `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
-              u.is_active, u.created_at, h.name AS hospital_name
+              u.is_active, u.created_at, h.name AS hospital_name,
+              dd.device_id, dd.device_label, dd.device_identifier, dd.platform AS device_platform,
+              dd.is_active AS device_is_active, dd.last_seen_at AS device_last_seen_at
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
        WHERE u.role = ? ORDER BY u.created_at DESC`,
       [role]
     );
@@ -56,8 +62,11 @@ const UserModel = {
   async findByRoleAndHospital(role, hospital_id) {
     const [rows] = await pool.query(
       `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
-              u.is_active, u.created_at
+              u.is_active, u.created_at,
+              dd.device_id, dd.device_label, dd.device_identifier, dd.platform AS device_platform,
+              dd.is_active AS device_is_active, dd.last_seen_at AS device_last_seen_at
        FROM users u
+       LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
        WHERE u.role = ? AND u.hospital_id = ? ORDER BY u.created_at DESC`,
       [role, hospital_id]
     );
@@ -67,9 +76,12 @@ const UserModel = {
   async findAll() {
     const [rows] = await pool.query(
       `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
-              u.is_active, u.created_at, h.name AS hospital_name
+              u.is_active, u.created_at, h.name AS hospital_name,
+              dd.device_id, dd.device_label, dd.device_identifier, dd.platform AS device_platform,
+              dd.is_active AS device_is_active, dd.last_seen_at AS device_last_seen_at
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       LEFT JOIN driver_devices dd ON dd.user_id = u.user_id
        ORDER BY u.created_at DESC`
     );
     return rows;

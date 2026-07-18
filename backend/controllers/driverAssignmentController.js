@@ -2,6 +2,7 @@
 const DriverAssignmentModel = require('../models/driverAssignmentModel');
 const UserModel = require('../models/userModel');
 const AmbulanceModel = require('../models/ambulanceModel');
+const DriverDeviceModel = require('../models/driverDeviceModel');
 
 // GET /api/driver-assignments
 // Dispatcher/admin: see which drivers are currently on which ambulance.
@@ -84,7 +85,12 @@ async function assignDriver(req, res) {
       }
     }
 
-    await DriverAssignmentModel.assign({ user_id, ambulance_id });
+    const device = await DriverDeviceModel.findByDriver(user_id);
+    if (!device) {
+      await DriverDeviceModel.ensureForDriver(driver);
+    }
+
+    await DriverAssignmentModel.assign({ user_id, ambulance_id, assigned_by_user_id: req.user.user_id });
     const assignment = await DriverAssignmentModel.findCurrentByAmbulance(ambulance_id);
 
     res.status(201).json({ success: true, data: assignment });

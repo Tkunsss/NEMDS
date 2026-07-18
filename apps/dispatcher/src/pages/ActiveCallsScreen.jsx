@@ -203,7 +203,12 @@ export default function ActiveCallsScreen() {
                   </div>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', textTransform: 'capitalize' }}>{amb.vehicle_type}</p>
                   {amb.driver_name && (
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px' }}>Driver: {amb.driver_name}</p>
+                    <>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px' }}>Driver: {amb.driver_name}</p>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                        Device: {amb.device_label || 'Driver device'} · {amb.device_identifier || amb.driver_phone}
+                      </p>
+                    </>
                   )}
                 </button>
               ))}

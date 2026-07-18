@@ -78,14 +78,30 @@ classDiagram
         +int assignment_id
         +int user_id
         +int ambulance_id
+        +int assigned_by_user_id
         +datetime shift_start
         +datetime shift_end
         +bool is_current
-        +assign(user_id, ambulance_id)
+        +assign(user_id, ambulance_id, assigned_by_user_id)
         +unassign(ambulance_id)
         +findCurrentByAmbulance(ambulance_id)
         +findCurrentByDriver(user_id)
         +findAllCurrent()
+    }
+
+    class DriverDevice {
+        +int device_id
+        +int user_id
+        +string device_label
+        +string device_identifier
+        +DevicePlatform platform
+        +bool is_active
+        +datetime registered_at
+        +datetime last_seen_at
+        +upsertForDriver(user_id, device)
+        +ensureForDriver(user_id)
+        +findByDriver(user_id)
+        +setActiveForDriver(user_id, is_active)
     }
 
     %% ============================================================
@@ -235,6 +251,13 @@ classDiagram
         full
     }
 
+    class DevicePlatform {
+        <<enumeration>>
+        mobile
+        tablet
+        other
+    }
+
     %% ============================================================
     %% RELATIONSHIPS
     %% ============================================================
@@ -243,6 +266,8 @@ classDiagram
     User "1" --> "0..*" EmergencyCall : submits optionally, callers are anonymous now
     User "1" --> "0..*" Dispatch : creates as dispatcher
     User "1" --> "0..*" DriverAssignment : assigned as driver
+    User "1" --> "0..*" DriverAssignment : creates as dispatcher
+    User "1" --> "0..1" DriverDevice : owns as driver
     User "1" --> "0..*" CallStatusLog : changes status
 
     Hospital "1" --> "0..*" Ambulance : bases
@@ -264,3 +289,4 @@ classDiagram
     Ambulance --> AmbulanceStatus
     Ambulance --> VehicleType
     Hospital --> CapacityStatus
+    DriverDevice --> DevicePlatform

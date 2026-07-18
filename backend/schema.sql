@@ -65,11 +65,28 @@ CREATE TABLE driver_assignments (
     assignment_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     ambulance_id INT NOT NULL,
+    assigned_by_user_id INT NULL,
     shift_start TIMESTAMP NULL,
     shift_end TIMESTAMP NULL,
     is_current BOOLEAN DEFAULT TRUE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY (assigned_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (ambulance_id) REFERENCES ambulances(ambulance_id) ON DELETE CASCADE
+);
+
+-- One mobile device belongs to one driver account. Dispatchers can assign many
+-- drivers across their hospital fleet, and each assigned driver carries their
+-- own device identity for the driver app/location stream.
+CREATE TABLE driver_devices (
+    device_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL UNIQUE,
+    device_label VARCHAR(100),
+    device_identifier VARCHAR(191) UNIQUE,
+    platform ENUM('mobile', 'tablet', 'other') DEFAULT 'mobile',
+    is_active BOOLEAN DEFAULT TRUE,
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_seen_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- ============================================================
@@ -174,6 +191,8 @@ CREATE INDEX idx_calls_emergency_id ON emergency_calls(emergency_id);
 CREATE INDEX idx_calls_assigned_hospital ON emergency_calls(assigned_hospital_id);
 CREATE INDEX idx_users_hospital ON users(hospital_id);
 CREATE INDEX idx_ambulances_status ON ambulances(status);
+CREATE INDEX idx_driver_devices_active ON driver_devices(is_active);
+CREATE INDEX idx_driver_assignments_assigned_by ON driver_assignments(assigned_by_user_id);
 CREATE INDEX idx_dispatches_call ON dispatches(call_id);
 CREATE INDEX idx_status_log_call ON call_status_log(call_id);
 CREATE INDEX idx_location_pings_call ON caller_location_pings(call_id);

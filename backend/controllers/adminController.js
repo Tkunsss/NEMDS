@@ -1,5 +1,6 @@
 // controllers/adminController.js
 const UserModel = require('../models/userModel');
+const DriverDeviceModel = require('../models/driverDeviceModel');
 const HospitalModel = require('../models/hospitalModel');
 const { pool } = require('../config/db');
 const { buildSystemRecords } = require('../utils/systemRecords');
@@ -19,7 +20,7 @@ async function listUsers(req, res) {
 
 async function createStaffUser(req, res) {
   try {
-    const { full_name, phone_number, email, password, role, hospital_id } = req.body;
+    const { full_name, phone_number, email, password, role, hospital_id, device_label, device_identifier, device_platform } = req.body;
     if (!full_name || !phone_number || !password || !role) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
@@ -44,10 +45,28 @@ async function createStaffUser(req, res) {
       hospital_id: hospital_id || null
     });
 
-    const user = await UserModel.findById(userId);
-    return res.status(201).json({ success: true, data: user });
+    if (role === 'driver') {
+      await DriverDeviceModel.upsertForDriver({
+        user_id: userId,
+        device_label: device_label || `${full_name}'s device`,
+        device_identifier: device_identifier || phone_number,
+        platform: device_platform || 'mobile'
+      });
+    }
+    const createdUser = await UserModel.findById(userId);
+    return res.status(201).json({ success: true, data: createdUser });
   } catch (error) {
     console.error('createStaffUser error:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      const duplicateField = error.sqlMessage?.includes('device_identifier')
+        ? 'device identifier'
+        : error.sqlMessage?.includes('phone_number')
+          ? 'phone number'
+          : error.sqlMessage?.includes('email')
+            ? 'email'
+            : 'value';
+      return res.status(409).json({ success: false, message: `That ${duplicateField} is already in use` });
+    }
     return res.status(500).json({ success: false, message: 'Failed to create staff user' });
   }
 }
@@ -55,7 +74,7 @@ async function createStaffUser(req, res) {
 async function updateUser(req, res) {
   try {
     const userId = req.params.id;
-    const { full_name, phone_number, email, password, role, hospital_id } = req.body;
+    const { full_name, phone_number, email, password, role, hospital_id, device_label, device_identifier, device_platform } = req.body;
 
     const fields = [];
     const values = [];
@@ -96,26 +115,44 @@ async function updateUser(req, res) {
       return res.status(400).json({ success: false, message: 'A hospital is required for dispatcher and driver accounts' });
     }
 
-    if (!fields.length) {
+    const hasDeviceChanges = device_label !== undefined || device_identifier !== undefined || device_platform !== undefined;
+
+    if (!fields.length && !hasDeviceChanges) {
       return res.status(400).json({ success: false, message: 'No changes provided' });
     }
 
-    values.push(userId);
-    await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`, values);
+    if (fields.length) {
+      values.push(userId);
+      await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`, values);
+    }
 
     const user = await UserModel.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    return res.json({ success: true, data: user });
+
+    if (user.role === 'driver') {
+      await DriverDeviceModel.upsertForDriver({
+        user_id: user.user_id,
+        device_label: device_label || user.device_label || `${user.full_name}'s device`,
+        device_identifier: device_identifier || user.device_identifier || user.phone_number,
+        platform: device_platform || user.device_platform || 'mobile'
+      });
+    } else if (user.device_id) {
+      await DriverDeviceModel.setActiveForDriver(user.user_id, false);
+    }
+    const updatedUser = await UserModel.findById(userId);
+    return res.json({ success: true, data: updatedUser });
   } catch (error) {
     console.error('updateUser error:', error);
     if (error.code === 'ER_DUP_ENTRY') {
-      const duplicateField = error.sqlMessage?.includes('phone_number')
-        ? 'phone number'
-        : error.sqlMessage?.includes('email')
-          ? 'email'
-          : 'value';
+      const duplicateField = error.sqlMessage?.includes('device_identifier')
+        ? 'device identifier'
+        : error.sqlMessage?.includes('phone_number')
+          ? 'phone number'
+          : error.sqlMessage?.includes('email')
+            ? 'email'
+            : 'value';
       return res.status(409).json({ success: false, message: `That ${duplicateField} is already in use` });
     }
     if (error.code === 'ER_NO_REFERENCED_ROW_2') {
