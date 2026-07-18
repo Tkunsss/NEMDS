@@ -1,6 +1,6 @@
 // src/pages/StaffScreen.jsx
 import { useState, useEffect } from 'react';
-import { Plus, X, UserX, UserCheck, Pencil } from 'lucide-react';
+import { Plus, X, UserX, UserCheck, Pencil, Search } from 'lucide-react';
 import { listUsers, createStaffUser, updateUser, deactivateUser, reactivateUser, deleteUser, listHospitals } from '../api/admin';
 
 const ROLES = ['dispatcher', 'driver', 'admin'];
@@ -15,9 +15,11 @@ export default function StaffScreen() {
   const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
-  function refresh() {
-    listUsers().then(setUsers).catch(console.error);
+  function refresh(query = '') {
+    listUsers(query).then(setUsers).catch(console.error);
   }
 
   useEffect(() => {
@@ -27,6 +29,21 @@ export default function StaffScreen() {
 
   function update(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  async function handleSearch(e) {
+    e.preventDefault();
+    setError(null);
+    setIsSearching(true);
+    try {
+      const query = searchTerm.trim();
+      const results = await listUsers(query);
+      setUsers(results);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not search users');
+    } finally {
+      setIsSearching(false);
+    }
   }
 
   const formNeedsHospital = HOSPITAL_REQUIRED_ROLES.includes(form.role);
@@ -162,6 +179,24 @@ export default function StaffScreen() {
           {error && <p style={{ color: 'var(--color-danger)', fontSize: 'var(--text-sm)', gridColumn: '1 / -1' }}>{error}</p>}
         </form>
       )}
+
+      <form onSubmit={handleSearch} style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+        <div style={{ position: 'relative', flex: 1 }}>
+          <Search size={16} style={{ position: 'absolute', left: 'var(--space-3)', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-faint)' }} />
+          <input
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name or phone number"
+            style={{ width: '100%', padding: 'var(--space-3) var(--space-3) var(--space-3) calc(var(--space-3) + 20px)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+          />
+        </div>
+        <button type="submit" disabled={isSearching} style={{ padding: 'var(--space-3) var(--space-4)', background: 'var(--color-accent)', color: '#fff', borderRadius: 'var(--radius-sm)', fontWeight: 600 }}>
+          {isSearching ? 'Searching…' : 'Search'}
+        </button>
+        <button type="button" onClick={() => { setSearchTerm(''); refresh(); }} style={{ padding: 'var(--space-3) var(--space-4)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', background: 'var(--color-bg)' }}>
+          Clear
+        </button>
+      </form>
 
       <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
         <table>

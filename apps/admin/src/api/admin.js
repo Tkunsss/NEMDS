@@ -6,8 +6,11 @@ export async function getStats() {
   return data.data;
 }
 
-export async function listUsers(role) {
-  const { data } = await apiClient.get('/admin/users', { params: role ? { role } : {} });
+export async function listUsers(query = '', role) {
+  const params = {};
+  if (query) params.q = query;
+  if (role) params.role = role;
+  const { data } = await apiClient.get('/admin/users', { params });
   return data.data;
 }
 

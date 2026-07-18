@@ -50,6 +50,20 @@ const UserModel = {
     );
     return rows;
   },
+
+  async searchByTerm(term) {
+    const normalizedTerm = `%${term.trim()}%`;
+    const [rows] = await pool.query(
+      `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
+              u.is_active, u.created_at, h.name AS hospital_name
+       FROM users u
+       LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       WHERE LOWER(u.full_name) LIKE LOWER(?) OR u.phone_number LIKE ?
+       ORDER BY u.created_at DESC`,
+      [normalizedTerm, normalizedTerm]
+    );
+    return rows;
+  },
   // Drivers belonging to a specific hospital — used by dispatcher's Crew
   // screen, which should only ever offer drivers from the dispatcher's own
   // hospital.

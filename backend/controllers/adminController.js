@@ -10,7 +10,10 @@ const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
 
 async function listUsers(req, res) {
   try {
-    const users = await UserModel.findAll();
+    const searchTerm = req.query.q?.toString().trim();
+    const users = searchTerm
+      ? await UserModel.searchByTerm(searchTerm)
+      : await UserModel.findAll();
     return res.json({ success: true, data: users });
   } catch (error) {
     console.error('listUsers error:', error);
