@@ -8,6 +8,7 @@ const AmbulanceModel = require('../models/ambulanceModel');
 const { findNearest } = require('../utils/distance');
 const { shouldReleaseAmbulanceOnCancel } = require('../utils/dispatchRouting');
 const { resolveCallerLocation } = require('../utils/callerLocation');
+const { resolveCallListScope } = require('../utils/callHistory');
 
 // POST /api/calls
 // Caller app: submit a new emergency. No login or phone number required —
@@ -129,12 +130,15 @@ async function listCalls(req, res) {
   try {
     const { status } = req.query;
     const hospital_id = req.user.role === 'dispatcher' ? req.user.hospital_id : null;
+    const scope = resolveCallListScope(status);
 
     let calls;
-    if (status === 'pending') {
+    if (scope.kind === 'pending') {
       calls = await CallModel.findPending(hospital_id);
-    } else if (status === 'active') {
+    } else if (scope.kind === 'active') {
       calls = await CallModel.findActive(hospital_id);
+    } else if (scope.kind === 'history') {
+      calls = await CallModel.findHistory(hospital_id);
     } else {
       calls = await CallModel.findAll({ hospital_id });
     }

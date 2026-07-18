@@ -26,15 +26,16 @@ export default function ActiveCallsScreen() {
   const [selectedAmbulance, setSelectedAmbulance] = useState('');
   const [isDispatching, setIsDispatching] = useState(false);
   const [error, setError] = useState(null);
+  const [view, setView] = useState('active');
 
   const refreshCalls = useCallback(async () => {
     try {
-      const callsData = await listCalls('active');
+      const callsData = await listCalls(view);
       setCalls(callsData.sort((a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity]));
     } catch (err) {
       console.error('Failed to load calls', err);
     }
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     const t = setTimeout(() => { refreshCalls(); }, 0);
@@ -97,13 +98,37 @@ export default function ActiveCallsScreen() {
     <div style={{ display: 'flex', height: '100vh' }}>
       <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 'var(--space-5)' }}>
-          <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800 }}>Active calls</h1>
-          <span style={{ color: 'var(--color-text-soft)', fontSize: 'var(--text-sm)' }}>{calls.length} in queue</span>
+          <div>
+            <h1 style={{ fontSize: 'var(--text-xl)', fontWeight: 800 }}>Dispatcher cases</h1>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+              <button
+                onClick={() => { setSelectedCall(null); setSelectedAmbulance(''); setView('active'); }}
+                style={{
+                  padding: '6px 10px', borderRadius: '999px', border: view === 'active' ? '1px solid var(--color-moderate)' : '1px solid var(--color-border)',
+                  background: view === 'active' ? 'var(--color-panel-raised)' : 'transparent', fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => { setSelectedCall(null); setSelectedAmbulance(''); setView('history'); }}
+                style={{
+                  padding: '6px 10px', borderRadius: '999px', border: view === 'history' ? '1px solid var(--color-moderate)' : '1px solid var(--color-border)',
+                  background: view === 'history' ? 'var(--color-panel-raised)' : 'transparent', fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Hospital history
+              </button>
+            </div>
+          </div>
+          <span style={{ color: 'var(--color-text-soft)', fontSize: 'var(--text-sm)' }}>
+            {view === 'history' ? `${calls.length} historical cases` : `${calls.length} in queue`}
+          </span>
         </div>
 
         {calls.length === 0 && (
           <p style={{ color: 'var(--color-text-faint)', padding: 'var(--space-6)', textAlign: 'center' }}>
-            No active emergency calls right now.
+            {view === 'history' ? 'No historical cases for this hospital yet.' : 'No active emergency calls right now.'}
           </p>
         )}
 
@@ -156,82 +181,96 @@ export default function ActiveCallsScreen() {
       {/* Dispatch panel */}
       {selectedCall && (
         <div style={{ width: '340px', borderLeft: '1px solid var(--color-border)', background: 'var(--color-panel)', padding: 'var(--space-5)', overflowY: 'auto' }}>
-          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-1)' }}>Dispatch — Call #{selectedCall.call_id}</h2>
+          <h2 style={{ fontSize: 'var(--text-lg)', fontWeight: 700, marginBottom: 'var(--space-1)' }}>
+            {view === 'history' ? `History — Call #${selectedCall.call_id}` : `Dispatch — Call #${selectedCall.call_id}`}
+          </h2>
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-4)', fontFamily: 'var(--font-mono)' }}>{selectedCall.emergency_id}</p>
-
-          <div style={{ marginBottom: 'var(--space-4)' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>LIVE LOCATION</p>
-            <CallerLocationMap
-              callId={selectedCall.call_id}
-              ambulanceId={selectedAmbulance || undefined}
-              fallbackLat={selectedCall.latitude}
-              fallbackLng={selectedCall.longitude}
-            />
-          </div>
 
           <div style={{ marginBottom: 'var(--space-4)' }}>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>DESCRIPTION</p>
             <p style={{ fontSize: 'var(--text-sm)' }}>{selectedCall.description || 'No description provided.'}</p>
           </div>
 
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>NEAREST AMBULANCES (WITH DRIVER)</p>
-            {ambulances.length === 0 && (
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
-                No crewed ambulances available. Assign a driver to an ambulance on the Crew screen first.
+          {view === 'history' ? (
+            <div style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'var(--color-panel-raised)' }}>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>CASE STATUS</p>
+              <p style={{ fontSize: 'var(--text-sm)', textTransform: 'capitalize' }}>{selectedCall.status.replace('_', ' ')}</p>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-2)' }}>
+                This is a completed or cancelled case from your hospital's history.
               </p>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              {error && (
-                <p style={{ color: 'var(--color-danger)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>{error}</p>
-              )}
-              {ambulances.map((amb) => (
-                <button
-                  key={amb.ambulance_id}
-                  onClick={() => setSelectedAmbulance(String(amb.ambulance_id))}
-                  style={{
-                    padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', textAlign: 'left',
-                    border: selectedAmbulance === String(amb.ambulance_id) ? '1.5px solid var(--color-moderate)' : '1px solid var(--color-border)',
-                    background: selectedAmbulance === String(amb.ambulance_id) ? 'var(--color-panel-raised)' : 'transparent'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{amb.plate_number}</p>
-                    {amb.distance_km != null && (
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-moderate)', fontWeight: 700 }}>{amb.distance_km} km</span>
-                    )}
-                  </div>
-                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', textTransform: 'capitalize' }}>{amb.vehicle_type}</p>
-                  {amb.driver_name && (
-                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px' }}>Driver: {amb.driver_name}</p>
-                  )}
-                </button>
-              ))}
             </div>
-          </div>
+          ) : (
+            <>
+              <div style={{ marginBottom: 'var(--space-4)' }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>LIVE LOCATION</p>
+                <CallerLocationMap
+                  callId={selectedCall.call_id}
+                  ambulanceId={selectedAmbulance || undefined}
+                  fallbackLat={selectedCall.latitude}
+                  fallbackLng={selectedCall.longitude}
+                />
+              </div>
 
-          <div style={{ marginBottom: 'var(--space-5)' }}>
-            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>
-              ROUTED HOSPITAL
-            </p>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
-              {selectedCall.assigned_hospital_id ? `Hospital #${selectedCall.assigned_hospital_id}` : 'No hospital assigned yet'}
-            </p>
-          </div>
+              <div style={{ marginBottom: 'var(--space-5)' }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>NEAREST AMBULANCES (WITH DRIVER)</p>
+                {ambulances.length === 0 && (
+                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
+                    No crewed ambulances available. Assign a driver to an ambulance on the Crew screen first.
+                  </p>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+                  {error && (
+                    <p style={{ color: 'var(--color-danger)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-2)' }}>{error}</p>
+                  )}
+                  {ambulances.map((amb) => (
+                    <button
+                      key={amb.ambulance_id}
+                      onClick={() => setSelectedAmbulance(String(amb.ambulance_id))}
+                      style={{
+                        padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', textAlign: 'left',
+                        border: selectedAmbulance === String(amb.ambulance_id) ? '1.5px solid var(--color-moderate)' : '1px solid var(--color-border)',
+                        background: selectedAmbulance === String(amb.ambulance_id) ? 'var(--color-panel-raised)' : 'transparent'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                        <p style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{amb.plate_number}</p>
+                        {amb.distance_km != null && (
+                          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-moderate)', fontWeight: 700 }}>{amb.distance_km} km</span>
+                        )}
+                      </div>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', textTransform: 'capitalize' }}>{amb.vehicle_type}</p>
+                      {amb.driver_name && (
+                        <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-success)', marginTop: '2px' }}>Driver: {amb.driver_name}</p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {error && <p style={{ color: 'var(--color-critical)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>{error}</p>}
+              <div style={{ marginBottom: 'var(--space-5)' }}>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-2)' }}>
+                  ROUTED HOSPITAL
+                </p>
+                <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
+                  {selectedCall.assigned_hospital_id ? `Hospital #${selectedCall.assigned_hospital_id}` : 'No hospital assigned yet'}
+                </p>
+              </div>
 
-          <button
-            onClick={handleDispatch}
-            disabled={!selectedAmbulance || isDispatching}
-            style={{
-              width: '100%', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)',
-              background: 'var(--color-critical)', color: '#fff', fontWeight: 700,
-              opacity: (!selectedAmbulance || isDispatching) ? 0.5 : 1
-            }}
-          >
-            {isDispatching ? 'Dispatching…' : 'Dispatch ambulance'}
-          </button>
+              {error && <p style={{ color: 'var(--color-critical)', fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>{error}</p>}
+
+              <button
+                onClick={handleDispatch}
+                disabled={!selectedAmbulance || isDispatching}
+                style={{
+                  width: '100%', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)',
+                  background: 'var(--color-critical)', color: '#fff', fontWeight: 700,
+                  opacity: (!selectedAmbulance || isDispatching) ? 0.5 : 1
+                }}
+              >
+                {isDispatching ? 'Dispatching…' : 'Dispatch ambulance'}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

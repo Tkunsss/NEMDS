@@ -94,6 +94,15 @@ const CallModel = {
     return rows;
   },
 
+  async findHistory(hospital_id = null) {
+    const query = hospital_id
+      ? `SELECT * FROM emergency_calls WHERE status IN ('completed', 'cancelled') AND assigned_hospital_id = ? ORDER BY created_at DESC`
+      : `SELECT * FROM emergency_calls WHERE status IN ('completed', 'cancelled') ORDER BY created_at DESC`;
+    const params = hospital_id ? [hospital_id] : [];
+    const [rows] = await pool.query(query, params);
+    return rows;
+  },
+
   async findAll({ limit = 100, offset = 0, hospital_id = null } = {}) {
     const query = hospital_id
       ? `SELECT * FROM emergency_calls WHERE assigned_hospital_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
