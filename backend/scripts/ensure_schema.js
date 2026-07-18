@@ -114,6 +114,9 @@ async function main() {
     'idx_driver_assignments_assigned_by',
     'CREATE INDEX idx_driver_assignments_assigned_by ON driver_assignments(assigned_by_user_id)'
   );
+
+  await ensureColumn('dispatches', 'driver_user_id', 'driver_user_id INT NULL AFTER ambulance_id');
+  await ensureIndex('dispatches', 'idx_dispatches_driver', 'CREATE INDEX idx_dispatches_driver ON dispatches(driver_user_id)');
 }
 
 main()

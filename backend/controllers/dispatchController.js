@@ -6,6 +6,15 @@ const StatusLogModel = require('../models/statusLogModel');
 const DriverAssignmentModel = require('../models/driverAssignmentModel');
 const { resolveDispatchHospitalId, isDispatcherDispatchAllowed } = require('../utils/dispatchRouting');
 
+async function requireDispatchForDriver(req, res) {
+  const dispatch = await DispatchModel.findActiveForDriver(req.user.user_id);
+  if (!dispatch || Number(dispatch.dispatch_id) !== Number(req.params.id)) {
+    res.status(403).json({ success: false, message: 'This dispatch is assigned to another driver' });
+    return null;
+  }
+  return dispatch;
+}
+
 // POST /api/dispatches  (dispatcher assigns an ambulance to a call)
 async function createDispatch(req, res) {
   try {
@@ -45,6 +54,7 @@ async function createDispatch(req, res) {
       call_id,
       dispatcher_user_id: req.user.user_id,
       ambulance_id,
+      driver_user_id: driverAssignment.user_id,
       destination_hospital_id: resolvedHospitalId,
       notes
     });
@@ -54,7 +64,7 @@ async function createDispatch(req, res) {
     await StatusLogModel.add({
       call_id,
       status: 'assigned',
-      note: `Ambulance #${ambulance_id} dispatched`,
+      note: `Ambulance #${ambulance_id} dispatched to ${driverAssignment.driver_name || 'assigned driver'}`,
       changed_by_user_id: req.user.user_id
     });
 
@@ -101,8 +111,8 @@ async function getActiveDispatchForDriver(req, res) {
 // Driver presses "On the way" — first status update after accepting a dispatch
 async function markEnRoute(req, res) {
   try {
-    const dispatch = await DispatchModel.findById(req.params.id);
-    if (!dispatch) return res.status(404).json({ success: false, message: 'Dispatch not found' });
+    const dispatch = await requireDispatchForDriver(req, res);
+    if (!dispatch) return;
 
     await AmbulanceModel.updateStatus(dispatch.ambulance_id, 'en_route');
     await CallModel.updateStatus(dispatch.call_id, 'en_route');
@@ -124,8 +134,9 @@ async function markEnRoute(req, res) {
 // PATCH /api/dispatches/:id/arrived-scene
 async function markArrivedScene(req, res) {
   try {
+    const dispatch = await requireDispatchForDriver(req, res);
+    if (!dispatch) return;
     await DispatchModel.markArrivedScene(req.params.id);
-    const dispatch = await DispatchModel.findById(req.params.id);
     await CallModel.updateStatus(dispatch.call_id, 'on_scene');
     await StatusLogModel.add({ call_id: dispatch.call_id, status: 'on_scene', changed_by_user_id: req.user.user_id });
 
@@ -145,8 +156,9 @@ async function markArrivedScene(req, res) {
 // PATCH /api/dispatches/:id/departed-scene
 async function markDepartedScene(req, res) {
   try {
+    const dispatch = await requireDispatchForDriver(req, res);
+    if (!dispatch) return;
     await DispatchModel.markDepartedScene(req.params.id);
-    const dispatch = await DispatchModel.findById(req.params.id);
     await CallModel.updateStatus(dispatch.call_id, 'transporting');
     await StatusLogModel.add({ call_id: dispatch.call_id, status: 'transporting', changed_by_user_id: req.user.user_id });
 
@@ -166,8 +178,9 @@ async function markDepartedScene(req, res) {
 // PATCH /api/dispatches/:id/arrived-hospital
 async function markArrivedHospital(req, res) {
   try {
+    const dispatch = await requireDispatchForDriver(req, res);
+    if (!dispatch) return;
     await DispatchModel.markArrivedHospital(req.params.id);
-    const dispatch = await DispatchModel.findById(req.params.id);
     await CallModel.updateStatus(dispatch.call_id, 'completed');
     await AmbulanceModel.updateStatus(dispatch.ambulance_id, 'available');
     await StatusLogModel.add({ call_id: dispatch.call_id, status: 'completed', changed_by_user_id: req.user.user_id });
