@@ -3,6 +3,7 @@ const UserModel = require('../models/userModel');
 const HospitalModel = require('../models/hospitalModel');
 const { pool } = require('../config/db');
 const { buildSystemRecords } = require('../utils/systemRecords');
+const { countAvailableAmbulances } = require('../utils/ambulanceStats');
 
 const STAFF_ROLES = ['dispatcher', 'driver', 'admin'];
 const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
@@ -208,15 +209,7 @@ async function getStats(req, res) {
     const [callRows] = await pool.query('SELECT COUNT(*) AS total_calls FROM emergency_calls');
     const [activeCallRows] = await pool.query("SELECT COUNT(*) AS active_calls FROM emergency_calls WHERE status IN ('pending', 'assigned', 'en_route', 'on_scene', 'transporting')");
     const [ambulanceRows] = await pool.query('SELECT COUNT(*) AS total_ambulances FROM ambulances WHERE deleted_at IS NULL');
-    const [availableAmbulanceRows] = await pool.query(`
-      SELECT COUNT(*) AS available_ambulances
-      FROM ambulances a
-      LEFT JOIN driver_assignments da
-        ON da.ambulance_id = a.ambulance_id AND da.is_current = TRUE
-      WHERE a.status = 'available'
-        AND a.deleted_at IS NULL
-        AND da.user_id IS NOT NULL
-    `);
+    const [allAmbulanceRows] = await pool.query('SELECT status, deleted_at FROM ambulances WHERE deleted_at IS NULL');
     const [dispatcherRows] = await pool.query("SELECT COUNT(*) AS total_dispatchers FROM users WHERE role = 'dispatcher'");
     const [driverRows] = await pool.query("SELECT COUNT(*) AS total_drivers FROM users WHERE role = 'driver'");
 
@@ -225,7 +218,7 @@ async function getStats(req, res) {
       data: {
         total_calls: callRows[0].total_calls,
         active_calls: activeCallRows[0].active_calls,
-        available_ambulances: availableAmbulanceRows[0].available_ambulances,
+        available_ambulances: countAvailableAmbulances(allAmbulanceRows),
         total_ambulances: ambulanceRows[0].total_ambulances,
         total_dispatchers: dispatcherRows[0].total_dispatchers,
         total_drivers: driverRows[0].total_drivers
