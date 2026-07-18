@@ -20,7 +20,7 @@ export default function OverviewScreen() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
           <StatCard label="Total calls" value={stats.total_calls} />
           <StatCard label="Active calls" value={stats.active_calls} accentColor="var(--color-danger)" />
-          <StatCard label="Available ambulances" value={`${stats.available_ambulances} / ${stats.total_ambulances}`} accentColor="var(--color-success)" />
+          <StatCard label="Dispatch-ready ambulances" value={`${stats.available_ambulances} / ${stats.total_ambulances}`} accentColor="var(--color-success)" />
           <StatCard label="Dispatchers" value={stats.total_dispatchers} />
           <StatCard label="Drivers" value={stats.total_drivers} />
         </div>
