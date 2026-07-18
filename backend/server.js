@@ -41,6 +41,7 @@ const corsOptions = {
 };
 
 const { testConnection } = require('./config/db');
+const { cleanupPendingCalls } = require('./utils/pendingCleanup');
 
 const authRoutes = require('./routes/authRoutes');
 const callRoutes = require('./routes/callRoutes');
@@ -219,6 +220,12 @@ function isPortFree(port) {
     server.listen(actualPort, HOST, async () => {
       console.log(`🚑 NCEMDS backend running on host ${HOST} port ${actualPort}`);
       await testConnection();
+      try {
+        const cleanupResult = await cleanupPendingCalls();
+        console.log('Pending cleanup applied:', cleanupResult);
+      } catch (cleanupErr) {
+        console.warn('Pending cleanup skipped:', cleanupErr.message);
+      }
     });
   } catch (err) {
     console.error('Failed to start server:', err);
