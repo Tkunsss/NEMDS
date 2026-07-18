@@ -5,6 +5,7 @@
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
+    "migrate": "node scripts/ensure_schema.js",
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
