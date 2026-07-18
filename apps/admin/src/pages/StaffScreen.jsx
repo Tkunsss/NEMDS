@@ -5,8 +5,7 @@ import { listUsers, createStaffUser, updateUser, deactivateUser, reactivateUser,
 
 const ROLES = ['dispatcher', 'driver', 'admin'];
 const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
-const DEVICE_PLATFORMS = ['mobile', 'tablet', 'other'];
-const emptyForm = { full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '', device_label: '', device_identifier: '', device_platform: 'mobile' };
+const emptyForm = { full_name: '', phone_number: '', email: '', password: '', role: 'dispatcher', hospital_id: '' };
 
 export default function StaffScreen() {
   const [users, setUsers] = useState([]);
@@ -14,7 +13,7 @@ export default function StaffScreen() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '', role: 'dispatcher', hospital_id: '', device_label: '', device_identifier: '', device_platform: 'mobile' });
+  const [editForm, setEditForm] = useState({ full_name: '', email: '', password: '', role: 'dispatcher', hospital_id: '' });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -45,10 +44,7 @@ export default function StaffScreen() {
     try {
       await createStaffUser({
         ...form,
-        hospital_id: formNeedsHospital ? Number(form.hospital_id) : null,
-        device_label: form.role === 'driver' ? form.device_label || undefined : undefined,
-        device_identifier: form.role === 'driver' ? form.device_identifier || undefined : undefined,
-        device_platform: form.role === 'driver' ? form.device_platform : undefined
+        hospital_id: formNeedsHospital ? Number(form.hospital_id) : null
       });
       setShowForm(false);
       setForm(emptyForm);
@@ -67,10 +63,7 @@ export default function StaffScreen() {
       email: u.email || '',
       password: '',
       role: u.role,
-      hospital_id: u.hospital_id || '',
-      device_label: u.device_label || '',
-      device_identifier: u.device_identifier || '',
-      device_platform: u.device_platform || 'mobile'
+      hospital_id: u.hospital_id || ''
     });
     setError(null);
   }
@@ -90,10 +83,7 @@ export default function StaffScreen() {
       await updateUser(userId, {
         ...editForm,
         password: editForm.password || undefined,
-        hospital_id: editNeedsHospital && editForm.hospital_id ? Number(editForm.hospital_id) : null,
-        device_label: editForm.role === 'driver' ? editForm.device_label || undefined : undefined,
-        device_identifier: editForm.role === 'driver' ? editForm.device_identifier || undefined : undefined,
-        device_platform: editForm.role === 'driver' ? editForm.device_platform : undefined
+        hospital_id: editNeedsHospital && editForm.hospital_id ? Number(editForm.hospital_id) : null
       });
       setEditingUser(null);
       refresh();
@@ -163,16 +153,6 @@ export default function StaffScreen() {
             </select>
           )}
 
-          {form.role === 'driver' && (
-            <>
-              <input placeholder="Device label" value={form.device_label} onChange={(e) => update('device_label', e.target.value)} style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }} />
-              <input placeholder="Device identifier" value={form.device_identifier} onChange={(e) => update('device_identifier', e.target.value)} style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }} />
-              <select value={form.device_platform} onChange={(e) => update('device_platform', e.target.value)} style={{ padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)' }}>
-                {DEVICE_PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </>
-          )}
-
           <div style={{ display: 'flex', alignItems: 'center', gridColumn: formNeedsHospital ? 'auto' : '1 / -1' }}>
             <button type="submit" disabled={isSubmitting} style={{
               padding: 'var(--space-3) var(--space-5)', background: 'var(--color-success)',
@@ -194,7 +174,7 @@ export default function StaffScreen() {
         <table>
           <thead>
             <tr style={{ background: 'var(--color-bg)' }}>
-              {['Name', 'Phone', 'Role', 'Hospital', 'Device', 'Status', ''].map((h) => (
+              {['Name', 'Phone', 'Role', 'Hospital', 'Task routing', 'Status', ''].map((h) => (
                 <th key={h} style={{ textAlign: 'left', padding: 'var(--space-3) var(--space-4)', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontWeight: 700, textTransform: 'uppercase' }}>{h}</th>
               ))}
             </tr>
@@ -235,8 +215,7 @@ export default function StaffScreen() {
                           onChange={(e) => setEditForm((f) => ({
                             ...f,
                             role: e.target.value,
-                            hospital_id: HOSPITAL_REQUIRED_ROLES.includes(e.target.value) ? f.hospital_id : '',
-                            device_platform: e.target.value === 'driver' ? f.device_platform : 'mobile'
+                            hospital_id: HOSPITAL_REQUIRED_ROLES.includes(e.target.value) ? f.hospital_id : ''
                           }))}
                           style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%', textTransform: 'capitalize' }}
                         >
@@ -257,29 +236,9 @@ export default function StaffScreen() {
                         ) : <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>—</span>}
                       </td>
                       <td style={{ padding: 'var(--space-2) var(--space-4)' }}>
-                        {editForm.role === 'driver' ? (
-                          <div style={{ display: 'grid', gap: 'var(--space-2)', minWidth: '180px' }}>
-                            <input
-                              placeholder="Device label"
-                              value={editForm.device_label}
-                              onChange={(e) => setEditForm((f) => ({ ...f, device_label: e.target.value }))}
-                              style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%' }}
-                            />
-                            <input
-                              placeholder="Device identifier"
-                              value={editForm.device_identifier}
-                              onChange={(e) => setEditForm((f) => ({ ...f, device_identifier: e.target.value }))}
-                              style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%' }}
-                            />
-                            <select
-                              value={editForm.device_platform}
-                              onChange={(e) => setEditForm((f) => ({ ...f, device_platform: e.target.value }))}
-                              style={{ padding: 'var(--space-2)', borderRadius: 'var(--radius-sm)', width: '100%' }}
-                            >
-                              {DEVICE_PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
-                            </select>
-                          </div>
-                        ) : <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>—</span>}
+                        <span style={{ color: 'var(--color-text-faint)', fontSize: 'var(--text-xs)' }}>
+                          {editForm.role === 'driver' ? 'Tasks route to this driver account' : '—'}
+                        </span>
                       </td>
                       <td colSpan={2} style={{ padding: 'var(--space-2) var(--space-4)', textAlign: 'right' }}>
                         <button onClick={() => handleSaveEdit(u.user_id)} disabled={isSubmitting} style={{ color: 'var(--color-success)', fontWeight: 700, fontSize: 'var(--text-xs)', marginRight: 'var(--space-3)' }}>
@@ -304,8 +263,8 @@ export default function StaffScreen() {
                         {u.role === 'driver'
                           ? (
                             <>
-                              <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>{u.device_label || 'Driver device'}</p>
-                              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{u.device_identifier || u.phone_number}</p>
+                              <p style={{ fontWeight: 600, color: 'var(--color-text)' }}>Driver account</p>
+                              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>Receives dispatches when assigned to an ambulance</p>
                             </>
                           )
                           : <span style={{ color: 'var(--color-text-faint)' }}>—</span>}
