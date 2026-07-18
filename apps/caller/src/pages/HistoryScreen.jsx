@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Inbox } from 'lucide-react';
 import { getCallHistory } from '../api/calls';
 import { getStoredEmergencyIds } from '../utils/localHistory';
+import { formatCambodiaDateTime } from '../utils/time';
 
 const STATUS_LABELS = {
   pending: 'Pending', assigned: 'Assigned', en_route: 'En route',
@@ -73,7 +74,7 @@ export default function HistoryScreen() {
                 {call.emergency_id} · {call.emergency_type.replace('_', ' ')}
               </p>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', marginTop: '2px' }}>
-                {new Date(call.created_at).toLocaleString()}
+                {formatCambodiaDateTime(call.created_at)}
               </p>
               <p style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: statusColor(call.status), marginTop: '6px' }}>
                 {STATUS_LABELS[call.status] || call.status}

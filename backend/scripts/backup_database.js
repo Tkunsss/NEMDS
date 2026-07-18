@@ -1,6 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
+const {
+  CAMBODIA_TIME_OFFSET,
+  formatCambodiaDateTime,
+  formatCambodiaSqlDateTime,
+  formatCambodiaTimestampForFile
+} = require('../utils/time');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 function quoteIdentifier(identifier) {
@@ -11,7 +17,7 @@ function formatValue(value) {
   if (value === null || value === undefined) return 'NULL';
   if (Buffer.isBuffer(value)) return `X'${value.toString('hex')}'`;
   if (value instanceof Date) {
-    return mysql.escape(value.toISOString().slice(0, 19).replace('T', ' '));
+    return mysql.escape(formatCambodiaSqlDateTime(value));
   }
   return mysql.escape(value);
 }
@@ -22,7 +28,7 @@ async function main() {
   fs.mkdirSync(backupDir, { recursive: true });
 
   const now = new Date();
-  const stamp = now.toISOString().replace(/[:.]/g, '-');
+  const stamp = formatCambodiaTimestampForFile(now);
   const database = process.env.DB_NAME || 'ncemds';
   const outputPath = path.join(backupDir, `${database}-backup-${stamp}.sql`);
 
@@ -44,14 +50,17 @@ async function main() {
     password: process.env.DB_PASSWORD || '',
     database,
     dateStrings: true,
+    timezone: CAMBODIA_TIME_OFFSET,
     connectTimeout: 20000,
     ssl,
   });
+  await connection.query(`SET time_zone = '${CAMBODIA_TIME_OFFSET}'`);
 
   const stream = fs.createWriteStream(outputPath, { encoding: 'utf8' });
   stream.write(`-- NCEMDS MySQL backup\n`);
   stream.write(`-- Database: ${database}\n`);
-  stream.write(`-- Created: ${now.toISOString()}\n\n`);
+  stream.write(`-- Created: ${formatCambodiaDateTime(now)}\n`);
+  stream.write(`-- Time zone: Asia/Phnom_Penh (+07:00)\n\n`);
   stream.write(`SET FOREIGN_KEY_CHECKS=0;\n`);
   stream.write(`SET SQL_MODE='ANSI_QUOTES,NO_AUTO_VALUE_ON_ZERO';\n\n`);
 

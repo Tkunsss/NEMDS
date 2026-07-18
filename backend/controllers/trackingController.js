@@ -3,6 +3,7 @@ const DispatchModel = require('../models/dispatchModel');
 const AmbulanceModel = require('../models/ambulanceModel');
 const CallModel = require('../models/callModel');
 const HospitalModel = require('../models/hospitalModel');
+const { formatCambodiaIsoDateTime } = require('../utils/time');
 
 async function resolveAmbulanceTrackingFallback(ambulanceId) {
   const ambulance = await AmbulanceModel.findById(ambulanceId);
@@ -68,7 +69,7 @@ async function updateAmbulanceTracking(req, res) {
       latitude,
       longitude,
       status,
-      timestamp: new Date().toISOString()
+      timestamp: formatCambodiaIsoDateTime()
     });
 
     res.json({ success: true, message: 'Tracking update recorded' });

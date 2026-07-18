@@ -6,11 +6,14 @@ import { createDispatch, listAvailableAmbulancesWithDriver } from '../api/dispat
 import { getNearestAmbulances } from '../api/proximity';
 import SeverityBadge from '../components/SeverityBadge';
 import CallerLocationMap from '../components/CallerLocationMap';
+import { parseCambodiaDate } from '../utils/time';
 
 const SEVERITY_ORDER = { critical: 0, urgent: 1, moderate: 2, unknown: 3 };
 
 function timeAgo(dateStr) {
-  const seconds = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+  const date = parseCambodiaDate(dateStr);
+  if (!date || Number.isNaN(date.getTime())) return '';
+  const seconds = Math.max(0, Math.floor((Date.now() - date) / 1000));
   if (seconds < 60) return `${seconds}s ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   return `${Math.floor(seconds / 3600)}h ago`;

@@ -3,6 +3,7 @@
 
 const mysql = require('mysql2/promise');
 const fs = require('fs');
+const { CAMBODIA_TIME_OFFSET } = require('../utils/time');
 require('dotenv').config();
 
 // Managed providers like Aiven require SSL by default. Set DB_SSL=true in
@@ -40,7 +41,14 @@ const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   dateStrings: true,
+  timezone: CAMBODIA_TIME_OFFSET,
   ssl: sslConfig
+});
+
+pool.on('connection', (connection) => {
+  connection.query(`SET time_zone = '${CAMBODIA_TIME_OFFSET}'`, (err) => {
+    if (err) console.warn('Failed to set MySQL Cambodia time zone:', err.message);
+  });
 });
 
 // Quick sanity check you can call on server startup

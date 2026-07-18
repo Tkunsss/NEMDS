@@ -7,6 +7,7 @@ import { CheckCircle2, Circle, Copy, X, Radio } from 'lucide-react';
 import { getCallById, cancelEmergencyCall, sendLocationPing, getDispatchForCall, getAmbulanceLocation } from '../api/calls';
 import Button from '../components/Button';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
+import { formatCambodiaDateTime } from '../utils/time';
 
 const STAGES = [
   { key: 'pending', label: 'Call received' },
@@ -34,6 +35,7 @@ export default function TrackingScreen() {
   const [call, setCall] = useState(null);
   const [dispatchInfo, setDispatchInfo] = useState(null);
   const [ambulanceLocation, setAmbulanceLocation] = useState(null);
+  const [lastAmbulanceUpdate, setLastAmbulanceUpdate] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [distanceKm, setDistanceKm] = useState(null);
   const [routePath, setRoutePath] = useState(null);
@@ -80,12 +82,14 @@ const calculateDistanceKm = (origin, destination) => {
       if (!dispatch?.ambulance_id) {
         setDispatchInfo(null);
         setAmbulanceLocation(null);
+        setLastAmbulanceUpdate(null);
         setDistanceKm(null);
         setEtaMinutes(null);
         return;
       }
       setDispatchInfo(dispatch);
       setAmbulanceLocation(null);
+      setLastAmbulanceUpdate(dispatch.ambulance_last_location_update || null);
       setEtaMinutes(null);
       setRoutePath(null);
       const initialDriverLocation = dispatch?.ambulance_current_latitude != null && dispatch?.ambulance_current_longitude != null
@@ -101,6 +105,7 @@ const calculateDistanceKm = (origin, destination) => {
         if (loc?.latitude != null && loc?.longitude != null) {
           const next = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
           setAmbulanceLocation(next);
+          setLastAmbulanceUpdate(loc.created_at || loc.last_location_update || null);
           if (callData.latitude != null && callData.longitude != null) {
             setDistanceKm(calculateDistanceKm(next, { lat: Number(callData.latitude), lng: Number(callData.longitude) }).toFixed(1));
           }
@@ -281,6 +286,7 @@ const calculateDistanceKm = (origin, destination) => {
       if (!update || update.call_id !== call.call_id) return;
       const next = { lat: Number(update.latitude), lng: Number(update.longitude) };
       setAmbulanceLocation(next);
+      setLastAmbulanceUpdate(update.timestamp || null);
       if (call.latitude != null && call.longitude != null) {
         setDistanceKm(calculateDistanceKm(next, { lat: Number(call.latitude), lng: Number(call.longitude) }).toFixed(1));
       }
@@ -372,7 +378,7 @@ const calculateDistanceKm = (origin, destination) => {
                   Live ambulance tracking will appear once the driver marks the case as "On the way".
                 </p>
               )}
-              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', marginTop: '4px' }}>Last update: {ambulanceLocation ? (dispatchInfo.updated_at || 'just now') : 'waiting for driver'}</p>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', marginTop: '4px' }}>Last update: {ambulanceLocation ? (formatCambodiaDateTime(lastAmbulanceUpdate) || 'just now') : 'waiting for driver'}</p>
               {!GOOGLE_MAPS_API_KEY ? (
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', marginTop: 'var(--space-2)' }}>Live map is unavailable right now, but the ambulance status is still updating.</p>
               ) : loadError ? (

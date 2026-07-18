@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { getSystemRecords, getUnassignedCalls } from '../api/admin';
+import { formatCambodiaDateTime } from '../utils/time';
 
 const STATUS_COLORS = {
   pending: 'var(--color-warning)',
@@ -70,7 +71,7 @@ export default function RecordsScreen() {
             <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
               {unassigned.map((c) => (
                 <p key={c.call_id} style={{ fontSize: 'var(--text-xs)', fontFamily: 'monospace' }}>
-                  {c.emergency_id} · {new Date(c.created_at).toLocaleString()}
+                  {c.emergency_id} · {formatCambodiaDateTime(c.created_at)}
                 </p>
               ))}
             </div>
@@ -104,7 +105,7 @@ export default function RecordsScreen() {
                   }}>
                     {r.status.replace('_', ' ')}
                   </span>
-                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{new Date(r.created_at).toLocaleString()}</span>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{formatCambodiaDateTime(r.created_at)}</span>
                 </div>
                 {isExpanded ? <ChevronUp size={18} color="var(--color-text-faint)" /> : <ChevronDown size={18} color="var(--color-text-faint)" />}
               </button>
@@ -124,7 +125,7 @@ export default function RecordsScreen() {
                     {r.timeline.map((t) => (
                       <div key={t.log_id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-xs)' }}>
                         <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{t.status.replace('_', ' ')}{t.note ? ` — ${t.note}` : ''}</span>
-                        <span style={{ color: 'var(--color-text-faint)' }}>{new Date(t.created_at).toLocaleString()}</span>
+                        <span style={{ color: 'var(--color-text-faint)' }}>{formatCambodiaDateTime(t.created_at)}</span>
                       </div>
                     ))}
                   </div>
