@@ -34,6 +34,12 @@ async function createStaffUser(req, res) {
     if (HOSPITAL_REQUIRED_ROLES.includes(role) && !hospital_id) {
       return res.status(400).json({ success: false, message: 'A hospital is required for dispatcher and driver accounts' });
     }
+    if (hospital_id) {
+      const hospital = await HospitalModel.findById(hospital_id);
+      if (!hospital) {
+        return res.status(400).json({ success: false, message: 'Selected hospital does not exist' });
+      }
+    }
     if (password.length < 6) {
       return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
     }
@@ -53,6 +59,20 @@ async function createStaffUser(req, res) {
     return res.status(201).json({ success: true, data: user });
   } catch (error) {
     console.error('createStaffUser error:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      const duplicateField = error.sqlMessage?.includes('phone_number')
+        ? 'phone number'
+        : error.sqlMessage?.includes('email')
+          ? 'email'
+          : 'value';
+      return res.status(409).json({ success: false, message: `That ${duplicateField} is already in use` });
+    }
+    if (error.code === 'ER_NO_REFERENCED_ROW_2') {
+      return res.status(400).json({ success: false, message: 'Selected hospital does not exist' });
+    }
+    if (error.code === 'WARN_DATA_TRUNCATED') {
+      return res.status(400).json({ success: false, message: 'Invalid user role or field value' });
+    }
     return res.status(500).json({ success: false, message: 'Failed to create staff user' });
   }
 }
