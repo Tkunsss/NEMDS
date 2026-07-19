@@ -1,7 +1,7 @@
 // src/pages/FleetScreen.jsx
 import { useState, useEffect } from 'react';
 import { Plus, X, Truck, Building2, Trash2, RotateCcw } from 'lucide-react';
-import { listAmbulances, listDeletedAmbulances, createAmbulance, deleteAmbulance, restoreAmbulance } from '../api/ambulances';
+import { listAmbulances, listDeletedAmbulances, createAmbulance, deleteAmbulance, restoreAmbulance, permanentDeleteAmbulance } from '../api/ambulances';
 import { listHospitals } from '../api/admin';
 
 export default function FleetScreen() {
@@ -66,6 +66,17 @@ export default function FleetScreen() {
       refresh();
     } catch (err) {
       setError(err.response?.data?.message || 'Could not restore ambulance');
+    }
+  }
+
+  async function handlePermanentDeleteAmbulance(ambulanceId) {
+    if (!window.confirm('Permanently delete this ambulance? This cannot be undone.')) return;
+    setError(null);
+    try {
+      await permanentDeleteAmbulance(ambulanceId);
+      refresh();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not permanently delete ambulance');
     }
   }
 
@@ -160,16 +171,28 @@ export default function FleetScreen() {
               <div key={a.ambulance_id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
                 <p style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{a.plate_number}</p>
                 <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-1)' }}>{a.vehicle_type}</p>
-                <button
-                  onClick={() => handleRestoreAmbulance(a.ambulance_id)}
-                  style={{
-                    marginTop: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
-                    padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
-                    background: 'var(--color-success)', color: '#fff', fontSize: 'var(--text-xs)', fontWeight: 700
-                  }}
-                >
-                  <RotateCcw size={14} /> Restore
-                </button>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+                  <button
+                    onClick={() => handleRestoreAmbulance(a.ambulance_id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
+                      background: 'var(--color-success)', color: '#fff', fontSize: 'var(--text-xs)', fontWeight: 700
+                    }}
+                  >
+                    <RotateCcw size={14} /> Restore
+                  </button>
+                  <button
+                    onClick={() => handlePermanentDeleteAmbulance(a.ambulance_id)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                      padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
+                      background: 'transparent', color: 'var(--color-danger)', fontSize: 'var(--text-xs)', fontWeight: 700
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
               </div>
             ))}
           </div>
