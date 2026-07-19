@@ -1,7 +1,7 @@
 // src/pages/StaffScreen.jsx
 import { useState, useEffect } from 'react';
-import { Plus, X, UserX, UserCheck, Pencil, Search } from 'lucide-react';
-import { listUsers, createStaffUser, updateUser, deactivateUser, reactivateUser, deleteUser, listHospitals } from '../api/admin';
+import { Plus, X, UserX, UserCheck, Pencil, Search, RotateCcw, Trash2 } from 'lucide-react';
+import { listUsers, createStaffUser, updateUser, deactivateUser, reactivateUser, deleteUser, restoreUser, permanentDeleteUser, listHospitals, listRecentlyRemoved } from '../api/admin';
 
 const ROLES = ['dispatcher', 'driver', 'admin'];
 const HOSPITAL_REQUIRED_ROLES = ['dispatcher', 'driver'];
@@ -17,9 +17,13 @@ export default function StaffScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [deletedUsers, setDeletedUsers] = useState([]);
 
   function refresh(query = '') {
     listUsers(query).then(setUsers).catch(console.error);
+    listRecentlyRemoved(24)
+      .then((items) => setDeletedUsers(items.filter((item) => item.type === 'user')))
+      .catch(console.error);
   }
 
   useEffect(() => {
@@ -115,8 +119,20 @@ export default function StaffScreen() {
   }
 
   async function handleDelete(userId) {
-    if (!window.confirm('Delete this staff account permanently?')) return;
+    if (!window.confirm('Move this staff account to Recently removed? It can be restored within 24 hours.')) return;
     await deleteUser(userId);
+    refresh();
+  }
+
+  async function handleRestore(userId) {
+    if (!window.confirm('Restore this staff account?')) return;
+    await restoreUser(userId);
+    refresh();
+  }
+
+  async function handlePermanentDelete(userId) {
+    if (!window.confirm('Permanently delete this staff account? This cannot be undone.')) return;
+    await permanentDeleteUser(userId);
     refresh();
   }
 
@@ -301,7 +317,7 @@ export default function StaffScreen() {
                               <UserX size={14} /> Deactivate
                             </button>
                             <button onClick={() => handleDelete(u.user_id)} style={{ color: 'var(--color-danger)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                              Delete
+                              Remove
                             </button>
                           </>
                         ) : (
@@ -310,7 +326,7 @@ export default function StaffScreen() {
                               <UserCheck size={14} /> Reactivate
                             </button>
                             <button onClick={() => handleDelete(u.user_id)} style={{ color: 'var(--color-danger)', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', fontWeight: 600 }}>
-                              Delete
+                              Remove
                             </button>
                           </>
                         )}
@@ -322,6 +338,32 @@ export default function StaffScreen() {
             })}
           </tbody>
         </table>
+      </div>
+      <div style={{ marginTop: 'var(--space-5)', padding: 'var(--space-5)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+          <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>Recently removed</h2>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>Restorable for 24 hours</p>
+        </div>
+        {deletedUsers.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-3)' }}>
+            {deletedUsers.map((u) => (
+              <div key={u.user_id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                <p style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{u.full_name}</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-1)', textTransform: 'capitalize' }}>{u.role}</p>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+                  <button onClick={() => handleRestore(u.user_id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'var(--color-success)', color: '#fff', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+                    <RotateCcw size={14} /> Restore
+                  </button>
+                  <button onClick={() => handlePermanentDelete(u.user_id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-danger)', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>No recently removed staff accounts yet. Remove one to see it here.</p>
+        )}
       </div>
       {error && editingUser === null && <p style={{ color: 'var(--color-danger)', fontSize: 'var(--text-sm)', marginTop: 'var(--space-3)' }}>{error}</p>}
     </div>

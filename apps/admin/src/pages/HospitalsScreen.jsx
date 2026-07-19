@@ -1,7 +1,7 @@
 // src/pages/HospitalsScreen.jsx
 import { useState, useEffect } from 'react';
-import { Plus, X, Building2, Search, MapPin, CheckCircle2, Trash2 } from 'lucide-react';
-import { listHospitals, createHospital, deleteHospital } from '../api/admin';
+import { Plus, X, Building2, Search, MapPin, CheckCircle2, Trash2, RotateCcw } from 'lucide-react';
+import { listHospitals, createHospital, deleteHospital, restoreHospital, permanentDeleteHospital, listRecentlyRemoved } from '../api/admin';
 import { searchHospitalsByText, searchHospitalsWithBrowserPlaces } from '../api/places';
 import HospitalMapSearch from '../components/HospitalMapSearch';
 
@@ -21,9 +21,13 @@ export default function HospitalsScreen() {
   const [searchError, setSearchError] = useState(null);
   const [importedIds, setImportedIds] = useState(new Set());
   const [importingId, setImportingId] = useState(null);
+  const [deletedHospitals, setDeletedHospitals] = useState([]);
 
   function refresh() {
     listHospitals().then(setHospitals).catch(console.error);
+    listRecentlyRemoved(24)
+      .then((items) => setDeletedHospitals(items.filter((item) => item.type === 'hospital')))
+      .catch(console.error);
   }
 
   useEffect(refresh, []);
@@ -115,8 +119,20 @@ export default function HospitalsScreen() {
   }
 
   async function handleDeleteHospital(hospitalId) {
-    if (!window.confirm('Delete this hospital? This cannot be undone.')) return;
+    if (!window.confirm('Move this hospital to Recently removed? It can be restored within 24 hours.')) return;
     await deleteHospital(hospitalId);
+    refresh();
+  }
+
+  async function handleRestoreHospital(hospitalId) {
+    if (!window.confirm('Restore this hospital?')) return;
+    await restoreHospital(hospitalId);
+    refresh();
+  }
+
+  async function handlePermanentDeleteHospital(hospitalId) {
+    if (!window.confirm('Permanently delete this hospital? This cannot be undone.')) return;
+    await permanentDeleteHospital(hospitalId);
     refresh();
   }
 
@@ -263,12 +279,14 @@ export default function HospitalsScreen() {
                 <Building2 size={16} color="var(--color-accent)" />
                 <p style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{h.name}</p>
               </div>
-              <button
-                onClick={() => handleDeleteHospital(h.hospital_id)}
-                style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-danger)', fontSize: 'var(--text-xs)', fontWeight: 700 }}
-              >
-                <Trash2 size={14} /> Delete
-              </button>
+              <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                <button
+                  onClick={() => handleDeleteHospital(h.hospital_id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-danger)', fontSize: 'var(--text-xs)', fontWeight: 700 }}
+                >
+                  <Trash2 size={14} /> Remove
+                </button>
+              </div>
             </div>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>{h.address}</p>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginTop: 'var(--space-2)', textTransform: 'capitalize' }}>
@@ -276,6 +294,33 @@ export default function HospitalsScreen() {
             </p>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-5)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+          <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>Recently removed</h2>
+          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>Restorable for 24 hours</p>
+        </div>
+        {deletedHospitals.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-3)' }}>
+            {deletedHospitals.map((h) => (
+              <div key={h.hospital_id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                <p style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{h.name}</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-1)' }}>{h.address || 'No address'}</p>
+                <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
+                  <button onClick={() => handleRestoreHospital(h.hospital_id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'var(--color-success)', color: '#fff', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+                    <RotateCcw size={14} /> Restore
+                  </button>
+                  <button onClick={() => handlePermanentDeleteHospital(h.hospital_id)} style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'transparent', color: 'var(--color-danger)', fontSize: 'var(--text-xs)', fontWeight: 700 }}>
+                    <Trash2 size={14} /> Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>No recently removed hospitals yet. Remove one to see it here.</p>
+        )}
       </div>
     </div>
   );

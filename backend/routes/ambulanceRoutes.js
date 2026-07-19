@@ -8,6 +8,7 @@ const {
   updateStatus,
   deleteAmbulance,
   restoreAmbulance,
+  permanentDeleteAmbulance,
   listDeletedAmbulances,
   getMyAmbulance,
   getAmbulanceLocation
@@ -17,6 +18,7 @@ const { requireAuth, requireRole } = require('../middleware/authMiddleware');
 router.get('/', requireAuth, requireRole('dispatcher', 'admin'), listAmbulances);
 router.get('/deleted', requireAuth, requireRole('admin'), listDeletedAmbulances);
 router.post('/:id/restore', requireAuth, requireRole('admin'), restoreAmbulance);
+router.delete('/:id/permanent', requireAuth, requireRole('admin'), permanentDeleteAmbulance);
 router.post('/', requireAuth, requireRole('admin'), createAmbulance);
 router.get('/my', requireAuth, requireRole('driver'), getMyAmbulance);
 router.get('/:id/location', requireAuth, requireRole('dispatcher', 'admin', 'driver'), getAmbulanceLocation);

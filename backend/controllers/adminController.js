@@ -1,6 +1,7 @@
 // controllers/adminController.js
 const UserModel = require('../models/userModel');
 const HospitalModel = require('../models/hospitalModel');
+const AmbulanceModel = require('../models/ambulanceModel');
 const { pool } = require('../config/db');
 const { buildSystemRecords } = require('../utils/systemRecords');
 const { countAvailableAmbulances } = require('../utils/ambulanceStats');
@@ -154,11 +155,43 @@ async function reactivateUser(req, res) {
 
 async function deleteUser(req, res) {
   try {
-    await pool.query('DELETE FROM users WHERE user_id = ?', [req.params.id]);
-    return res.json({ success: true, message: 'User deleted' });
+    const existing = await UserModel.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    await UserModel.delete(req.params.id);
+    return res.json({ success: true, message: 'User moved to Recently removed and can be restored within 24 hours' });
   } catch (error) {
     console.error('deleteUser error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete user' });
+  }
+}
+
+async function restoreUser(req, res) {
+  try {
+    const user = await UserModel.findDeletedById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Deleted user not found or recovery window expired' });
+    }
+    await UserModel.restore(req.params.id);
+    return res.json({ success: true, message: 'User restored' });
+  } catch (error) {
+    console.error('restoreUser error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to restore user' });
+  }
+}
+
+async function permanentDeleteUser(req, res) {
+  try {
+    const user = await UserModel.findDeletedById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Deleted user not found' });
+    }
+    await UserModel.permanentDelete(req.params.id);
+    return res.json({ success: true, message: 'User permanently deleted' });
+  } catch (error) {
+    console.error('permanentDeleteUser error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to permanently delete user' });
   }
 }
 
@@ -197,18 +230,72 @@ async function createHospital(req, res) {
 
 async function deleteHospital(req, res) {
   try {
+    const existing = await HospitalModel.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Hospital not found' });
+    }
     await HospitalModel.delete(req.params.id);
-    return res.json({ success: true, message: 'Hospital deleted' });
+    return res.json({ success: true, message: 'Hospital moved to Recently removed and can be restored within 24 hours' });
   } catch (error) {
     console.error('deleteHospital error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete hospital' });
   }
 }
 
+async function restoreHospital(req, res) {
+  try {
+    const hospital = await HospitalModel.findDeletedById(req.params.id);
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: 'Deleted hospital not found or recovery window expired' });
+    }
+    await HospitalModel.restore(req.params.id);
+    return res.json({ success: true, message: 'Hospital restored' });
+  } catch (error) {
+    console.error('restoreHospital error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to restore hospital' });
+  }
+}
+
+async function permanentDeleteHospital(req, res) {
+  try {
+    const hospital = await HospitalModel.findDeletedById(req.params.id);
+    if (!hospital) {
+      return res.status(404).json({ success: false, message: 'Deleted hospital not found' });
+    }
+    await HospitalModel.permanentDelete(req.params.id);
+    return res.json({ success: true, message: 'Hospital permanently deleted' });
+  } catch (error) {
+    console.error('permanentDeleteHospital error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to permanently delete hospital' });
+  }
+}
+
+async function listRecentlyRemoved(req, res) {
+  try {
+    const hours = Math.min(Math.max(Number(req.query.hours) || 24, 1), 168);
+    const [ambulances, users, hospitals] = await Promise.all([
+      AmbulanceModel.findDeletedWithinHours(hours),
+      UserModel.findDeletedWithinHours(hours),
+      HospitalModel.findDeletedWithinHours(hours)
+    ]);
+
+    const items = [
+      ...ambulances.map((item) => ({ ...item, type: 'ambulance', label: item.plate_number || 'Ambulance' })),
+      ...users.map((item) => ({ ...item, type: 'user', label: item.full_name || 'Staff account' })),
+      ...hospitals.map((item) => ({ ...item, type: 'hospital', label: item.name || 'Hospital' }))
+    ].sort((a, b) => new Date(b.deleted_at || 0) - new Date(a.deleted_at || 0));
+
+    return res.json({ success: true, data: items });
+  } catch (error) {
+    console.error('listRecentlyRemoved error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load recently removed items' });
+  }
+}
+
 async function getStats(req, res) {
   try {
-    const [userRows] = await pool.query('SELECT COUNT(*) AS total_users FROM users');
-    const [hospitalRows] = await pool.query('SELECT COUNT(*) AS total_hospitals FROM hospitals');
+    const [userRows] = await pool.query('SELECT COUNT(*) AS total_users FROM users WHERE deleted_at IS NULL');
+    const [hospitalRows] = await pool.query('SELECT COUNT(*) AS total_hospitals FROM hospitals WHERE deleted_at IS NULL');
     const [callRows] = await pool.query('SELECT COUNT(*) AS total_calls FROM emergency_calls');
     const [activeCallRows] = await pool.query("SELECT COUNT(*) AS active_calls FROM emergency_calls WHERE status IN ('pending', 'assigned', 'en_route', 'on_scene', 'transporting')");
     const [ambulanceRows] = await pool.query('SELECT COUNT(*) AS total_ambulances FROM ambulances WHERE deleted_at IS NULL');
@@ -217,8 +304,8 @@ async function getStats(req, res) {
       FROM ambulances a
       WHERE a.deleted_at IS NULL
     `);
-    const [dispatcherRows] = await pool.query("SELECT COUNT(*) AS total_dispatchers FROM users WHERE role = 'dispatcher'");
-    const [driverRows] = await pool.query("SELECT COUNT(*) AS total_drivers FROM users WHERE role = 'driver'");
+    const [dispatcherRows] = await pool.query("SELECT COUNT(*) AS total_dispatchers FROM users WHERE role = 'dispatcher' AND deleted_at IS NULL");
+    const [driverRows] = await pool.query("SELECT COUNT(*) AS total_drivers FROM users WHERE role = 'driver' AND deleted_at IS NULL");
 
     return res.json({
       success: true,
@@ -288,9 +375,14 @@ module.exports = {
   deactivateUser,
   reactivateUser,
   deleteUser,
+  restoreUser,
+  permanentDeleteUser,
   listHospitals,
   createHospital,
   deleteHospital,
+  restoreHospital,
+  permanentDeleteHospital,
+  listRecentlyRemoved,
   getStats,
   getSystemRecords
 };

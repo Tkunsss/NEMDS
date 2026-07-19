@@ -102,6 +102,21 @@ async function restoreAmbulance(req, res) {
   }
 }
 
+// DELETE /api/ambulances/:id/permanent
+async function permanentDeleteAmbulance(req, res) {
+  try {
+    const ambulance = await AmbulanceModel.findDeletedById(req.params.id);
+    if (!ambulance) {
+      return res.status(404).json({ success: false, message: 'Deleted ambulance not found' });
+    }
+    await AmbulanceModel.permanentDelete(req.params.id);
+    res.json({ success: true, message: 'Ambulance permanently deleted' });
+  } catch (err) {
+    console.error('permanentDeleteAmbulance error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+}
+
 // GET /api/ambulances/deleted?hours=24
 async function listDeletedAmbulances(req, res) {
   try {
@@ -161,4 +176,4 @@ async function getAmbulanceLocation(req, res) {
   }
 }
 
-module.exports = { listAmbulances, createAmbulance, updateLocation, updateStatus, deleteAmbulance, restoreAmbulance, listDeletedAmbulances, getMyAmbulance, getAmbulanceLocation };
+module.exports = { listAmbulances, createAmbulance, updateLocation, updateStatus, deleteAmbulance, restoreAmbulance, permanentDeleteAmbulance, listDeletedAmbulances, getMyAmbulance, getAmbulanceLocation };

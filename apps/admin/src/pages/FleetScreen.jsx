@@ -1,11 +1,12 @@
 // src/pages/FleetScreen.jsx
 import { useState, useEffect } from 'react';
-import { Plus, X, Truck, Building2, Trash2 } from 'lucide-react';
-import { listAmbulances, createAmbulance, deleteAmbulance } from '../api/ambulances';
+import { Plus, X, Truck, Building2, Trash2, RotateCcw } from 'lucide-react';
+import { listAmbulances, listDeletedAmbulances, createAmbulance, deleteAmbulance, restoreAmbulance } from '../api/ambulances';
 import { listHospitals } from '../api/admin';
 
 export default function FleetScreen() {
   const [ambulances, setAmbulances] = useState([]);
+  const [deletedAmbulances, setDeletedAmbulances] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ plate_number: '', home_hospital_id: '' });
@@ -13,7 +14,12 @@ export default function FleetScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function refresh() {
-    listAmbulances().then(setAmbulances).catch(console.error);
+    Promise.all([listAmbulances(), listDeletedAmbulances()])
+      .then(([active, deleted]) => {
+        setAmbulances(active);
+        setDeletedAmbulances(deleted);
+      })
+      .catch(console.error);
   }
 
   useEffect(() => {
@@ -47,8 +53,20 @@ export default function FleetScreen() {
 
   async function handleDeleteAmbulance(ambulanceId) {
     if (!window.confirm('Delete this ambulance from fleet? It can be restored within 24 hours.')) return;
+    setError(null);
     await deleteAmbulance(ambulanceId);
     refresh();
+  }
+
+  async function handleRestoreAmbulance(ambulanceId) {
+    if (!window.confirm('Restore this ambulance to the active fleet?')) return;
+    setError(null);
+    try {
+      await restoreAmbulance(ambulanceId);
+      refresh();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not restore ambulance');
+    }
   }
 
   return (
@@ -130,6 +148,33 @@ export default function FleetScreen() {
           </div>
         ))}
       </div>
+
+      {deletedAmbulances.length > 0 && (
+        <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-5)', background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-3)' }}>
+            <h2 style={{ fontSize: 'var(--text-md)', fontWeight: 700 }}>Recently removed</h2>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)' }}>Restorable for 24 hours</p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 'var(--space-3)' }}>
+            {deletedAmbulances.map((a) => (
+              <div key={a.ambulance_id} style={{ padding: 'var(--space-4)', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                <p style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>{a.plate_number}</p>
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', marginTop: 'var(--space-1)' }}>{a.vehicle_type}</p>
+                <button
+                  onClick={() => handleRestoreAmbulance(a.ambulance_id)}
+                  style={{
+                    marginTop: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                    padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--color-success)', color: '#fff', fontSize: 'var(--text-xs)', fontWeight: 700
+                  }}
+                >
+                  <RotateCcw size={14} /> Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

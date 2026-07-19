@@ -1,14 +1,53 @@
 // src/pages/OverviewScreen.jsx
 import { useState, useEffect } from 'react';
-import { getStats } from '../api/admin';
+import { RotateCcw, Trash2 } from 'lucide-react';
+import { getStats, restoreUser, restoreHospital, permanentDeleteUser, permanentDeleteHospital } from '../api/admin';
+import { restoreAmbulance as restoreFleetAmbulance, permanentDeleteAmbulance } from '../api/ambulances';
 import StatCard from '../components/StatCard';
 
 export default function OverviewScreen() {
   const [stats, setStats] = useState(null);
 
+  function refresh() {
+    getStats()
+      .then(setStats)
+      .catch(console.error);
+  }
+
   useEffect(() => {
-    getStats().then(setStats).catch(console.error);
+    refresh();
   }, []);
+
+  async function handleRestore(item) {
+    try {
+      if (item.type === 'user') {
+        await restoreUser(item.user_id);
+      } else if (item.type === 'hospital') {
+        await restoreHospital(item.hospital_id);
+      } else if (item.type === 'ambulance') {
+        await restoreFleetAmbulance(item.ambulance_id);
+      }
+      refresh();
+    } catch (err) {
+      console.error('restore failed', err);
+    }
+  }
+
+  async function handlePermanentDelete(item) {
+    if (!window.confirm('Permanently delete this item? This cannot be undone.')) return;
+    try {
+      if (item.type === 'user') {
+        await permanentDeleteUser(item.user_id);
+      } else if (item.type === 'hospital') {
+        await permanentDeleteHospital(item.hospital_id);
+      } else if (item.type === 'ambulance') {
+        await permanentDeleteAmbulance(item.ambulance_id);
+      }
+      refresh();
+    } catch (err) {
+      console.error('permanent delete failed', err);
+    }
+  }
 
   return (
     <div style={{ padding: 'var(--space-6)' }}>
@@ -25,6 +64,7 @@ export default function OverviewScreen() {
           <StatCard label="Drivers" value={stats.total_drivers} />
         </div>
       )}
+
     </div>
   );
 }

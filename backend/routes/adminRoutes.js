@@ -8,9 +8,14 @@ const {
   deactivateUser,
   reactivateUser,
   deleteUser,
+  restoreUser,
+  permanentDeleteUser,
   listHospitals,
   createHospital,
   deleteHospital,
+  restoreHospital,
+  permanentDeleteHospital,
+  listRecentlyRemoved,
   getStats,
   getSystemRecords
 } = require('../controllers/adminController');
@@ -24,11 +29,16 @@ router.patch('/users/:id', updateUser);
 router.patch('/users/:id/deactivate', deactivateUser);
 router.patch('/users/:id/reactivate', reactivateUser);
 router.delete('/users/:id', deleteUser);
+router.post('/users/:id/restore', restoreUser);
+router.delete('/users/:id/permanent', permanentDeleteUser);
 
 router.get('/hospitals', listHospitals);
 router.post('/hospitals', createHospital);
 router.delete('/hospitals/:id', deleteHospital);
+router.post('/hospitals/:id/restore', restoreHospital);
+router.delete('/hospitals/:id/permanent', permanentDeleteHospital);
 
+router.get('/recently-removed', listRecentlyRemoved);
 router.get('/stats', getStats);
 router.get('/records', getSystemRecords);
 

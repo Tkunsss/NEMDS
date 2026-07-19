@@ -39,6 +39,16 @@ export async function deleteUser(userId) {
   return data;
 }
 
+export async function restoreUser(userId) {
+  const { data } = await apiClient.post(`/admin/users/${userId}/restore`);
+  return data;
+}
+
+export async function permanentDeleteUser(userId) {
+  const { data } = await apiClient.delete(`/admin/users/${userId}/permanent`);
+  return data;
+}
+
 export async function getSystemRecords(limit = 50, offset = 0) {
   try {
     const { data } = await apiClient.get('/admin/records', { params: { limit, offset } });
@@ -69,4 +79,26 @@ export async function createHospital(payload) {
 export async function deleteHospital(hospitalId) {
   const { data } = await apiClient.delete(`/admin/hospitals/${hospitalId}`);
   return data;
+}
+
+export async function restoreHospital(hospitalId) {
+  const { data } = await apiClient.post(`/admin/hospitals/${hospitalId}/restore`);
+  return data;
+}
+
+export async function permanentDeleteHospital(hospitalId) {
+  const { data } = await apiClient.delete(`/admin/hospitals/${hospitalId}/permanent`);
+  return data;
+}
+
+export async function listRecentlyRemoved(hours = 24) {
+  try {
+    const { data } = await apiClient.get('/admin/recently-removed', { params: { hours } });
+    return data.data || [];
+  } catch (err) {
+    if (err.response?.status === 404) {
+      return [];
+    }
+    throw err;
+  }
 }

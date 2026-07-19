@@ -73,6 +73,10 @@ const AmbulanceModel = {
     await pool.query(`UPDATE ambulances SET deleted_at = NULL WHERE ambulance_id = ?`, [ambulance_id]);
   },
 
+  async permanentDelete(ambulance_id) {
+    await pool.query(`DELETE FROM ambulances WHERE ambulance_id = ?`, [ambulance_id]);
+  },
+
   async findDeletedById(ambulance_id) {
     const [rows] = await pool.query(
       `SELECT * FROM ambulances WHERE ambulance_id = ? AND deleted_at IS NOT NULL LIMIT 1`,

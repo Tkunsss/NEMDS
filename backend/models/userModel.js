@@ -13,7 +13,7 @@ const UserModel = {
 
   async findByPhone(phone_number) {
     const [rows] = await pool.query(
-      `SELECT * FROM users WHERE phone_number = ? LIMIT 1`,
+      `SELECT * FROM users WHERE phone_number = ? AND deleted_at IS NULL LIMIT 1`,
       [phone_number]
     );
     return rows[0] || null;
@@ -21,7 +21,7 @@ const UserModel = {
 
   async findByEmail(email) {
     const [rows] = await pool.query(
-      `SELECT * FROM users WHERE email = ? LIMIT 1`,
+      `SELECT * FROM users WHERE email = ? AND deleted_at IS NULL LIMIT 1`,
       [email]
     );
     return rows[0] || null;
@@ -33,7 +33,19 @@ const UserModel = {
               u.is_active, u.created_at, h.name AS hospital_name
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
-       WHERE u.user_id = ? LIMIT 1`,
+       WHERE u.user_id = ? AND u.deleted_at IS NULL LIMIT 1`,
+      [user_id]
+    );
+    return rows[0] || null;
+  },
+
+  async findDeletedById(user_id) {
+    const [rows] = await pool.query(
+      `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
+              u.is_active, u.created_at, h.name AS hospital_name
+       FROM users u
+       LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       WHERE u.user_id = ? AND u.deleted_at IS NOT NULL LIMIT 1`,
       [user_id]
     );
     return rows[0] || null;
@@ -45,7 +57,7 @@ const UserModel = {
               u.is_active, u.created_at, h.name AS hospital_name
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
-       WHERE u.role = ? ORDER BY u.created_at DESC`,
+       WHERE u.role = ? AND u.deleted_at IS NULL ORDER BY u.created_at DESC`,
       [role]
     );
     return rows;
@@ -58,7 +70,7 @@ const UserModel = {
               u.is_active, u.created_at, h.name AS hospital_name
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
-       WHERE LOWER(u.full_name) LIKE LOWER(?) OR u.phone_number LIKE ?
+       WHERE u.deleted_at IS NULL AND (LOWER(u.full_name) LIKE LOWER(?) OR u.phone_number LIKE ?)
        ORDER BY u.created_at DESC`,
       [normalizedTerm, normalizedTerm]
     );
@@ -72,7 +84,7 @@ const UserModel = {
       `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
               u.is_active, u.created_at
        FROM users u
-       WHERE u.role = ? AND u.hospital_id = ? ORDER BY u.created_at DESC`,
+       WHERE u.role = ? AND u.hospital_id = ? AND u.deleted_at IS NULL ORDER BY u.created_at DESC`,
       [role, hospital_id]
     );
     return rows;
@@ -84,7 +96,21 @@ const UserModel = {
               u.is_active, u.created_at, h.name AS hospital_name
        FROM users u
        LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       WHERE u.deleted_at IS NULL
        ORDER BY u.created_at DESC`
+    );
+    return rows;
+  },
+
+  async findDeletedWithinHours(hours = 24) {
+    const [rows] = await pool.query(
+      `SELECT u.user_id, u.full_name, u.phone_number, u.email, u.role, u.hospital_id,
+              u.is_active, u.created_at, h.name AS hospital_name
+       FROM users u
+       LEFT JOIN hospitals h ON h.hospital_id = u.hospital_id
+       WHERE u.deleted_at IS NOT NULL AND u.deleted_at >= NOW() - INTERVAL ? HOUR
+       ORDER BY u.deleted_at DESC`,
+      [hours]
     );
     return rows;
   },
@@ -95,6 +121,18 @@ const UserModel = {
 
   async setHospital(user_id, hospital_id) {
     await pool.query(`UPDATE users SET hospital_id = ? WHERE user_id = ?`, [hospital_id, user_id]);
+  },
+
+  async delete(user_id) {
+    await pool.query(`UPDATE users SET deleted_at = NOW() WHERE user_id = ?`, [user_id]);
+  },
+
+  async restore(user_id) {
+    await pool.query(`UPDATE users SET deleted_at = NULL WHERE user_id = ?`, [user_id]);
+  },
+
+  async permanentDelete(user_id) {
+    await pool.query(`DELETE FROM users WHERE user_id = ?`, [user_id]);
   }
 };
 
