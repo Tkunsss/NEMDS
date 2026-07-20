@@ -230,14 +230,18 @@ const calculateDistanceKm = (origin, destination) => {
             if (legs?.duration) {
               setEtaMinutes(Math.ceil(legs.duration.value / 60));
             }
-            if (legs?.distance) {
+            if (legs?.distance?.value != null) {
               const routeKm = Math.round((legs.distance.value / 1000) * 10) / 10;
               setDistanceKm(routeKm.toFixed(1));
+            } else {
+              const straightLineKm = calculateDistanceKm(origin, destination);
+              setDistanceKm(straightLineKm.toFixed(1));
             }
           } else if (status !== 'OK' && active) {
             console.warn('Directions request failed:', status);
             setRoutePath(null);
             setEtaMinutes(null);
+            setDistanceKm(calculateDistanceKm(origin, destination).toFixed(1));
           }
         });
       } catch (err) {
@@ -289,15 +293,6 @@ const calculateDistanceKm = (origin, destination) => {
       socket.disconnect();
     };
   }, [call, fetchDispatchInfo]);
-
-  useEffect(() => {
-    if (!driverLocation || !effectiveCallerLocation) {
-      setDistanceKm(null);
-      return;
-    }
-
-    setDistanceKm(calculateDistanceKm(driverLocation, effectiveCallerLocation).toFixed(1));
-  }, [driverLocation, effectiveCallerLocation]);
 
   if (isLoading) {
     return (

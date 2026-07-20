@@ -189,18 +189,14 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
           />
         )}
         
-        {/* Caller location marker - simple blue dot */}
+        {/* Caller location marker */}
         <Marker 
           position={position}
           title="Caller Location"
           zIndex={1}
+          label={{ text: '📍', fontSize: '20px' }}
           icon={{
-            path: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z',
-            fillColor: '#4A90E2',
-            fillOpacity: 1,
-            strokeColor: '#fff',
-            strokeWeight: 2,
-            scale: 0.8
+            url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
           }}
         />
         
@@ -209,13 +205,9 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
           <Marker 
             position={destinationPos}
             title={destinationName}
+            label={{ text: '🏥', fontSize: '22px' }}
             icon={{
-              path: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14h-2v-4h-2v-2h2V7h2v4h2v2h-2v4z',
-              fillColor: '#50C878',
-              fillOpacity: 1,
-              strokeColor: '#fff',
-              strokeWeight: 1,
-              scale: 1.5
+              url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
             }}
           />
         )}
