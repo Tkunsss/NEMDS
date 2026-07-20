@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useGoogleMap } from '@react-google-maps/api';
+import { Marker, useGoogleMap } from '@react-google-maps/api';
 
 export default function MapMarker({ position, title, zIndex, kind = 'default' }) {
   const map = useGoogleMap();
@@ -43,5 +43,16 @@ export default function MapMarker({ position, title, zIndex, kind = 'default' })
   }, [map, position?.lat, position?.lng, title, zIndex, kind]);
 
   if (!map) return null;
+
+  if (!window.google?.maps?.marker?.AdvancedMarkerElement) {
+    return (
+      <Marker
+        position={position}
+        title={title}
+        zIndex={zIndex}
+      />
+    );
+  }
+
   return null;
 }
