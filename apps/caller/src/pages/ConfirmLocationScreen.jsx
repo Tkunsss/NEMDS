@@ -392,9 +392,9 @@ export default function ConfirmLocationScreen() {
               <Camera size={18} color="var(--color-emergency)" />
               {photoPreview ? 'Retake photo' : 'Take a photo'}
             </button>
-            <p style={{ marginTop: '0.4rem', fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', lineHeight: 1.4 }}>
+            {/* <p style={{ marginTop: '0.4rem', fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', lineHeight: 1.4 }}>
               If the camera preview shows black, tap “Take a photo” again to reopen the camera. This issue cannot be fixed from our side.
-            </p>
+            </p> */}
           </div>
 
           {isCameraOpen && (
