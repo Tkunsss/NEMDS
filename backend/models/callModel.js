@@ -23,6 +23,24 @@ const CallModel = {
         );
         return { call_id: result.insertId, emergency_id };
       } catch (err) {
+        const isLegacySchemaError = (err.code === 'ER_BAD_FIELD_ERROR' || err.code === 'ER_PARSE_ERROR')
+          && /caller_role|photo_data|photo_name/i.test(err.message || '');
+
+        if (isLegacySchemaError) {
+          try {
+            const [legacyResult] = await pool.query(
+              `INSERT INTO emergency_calls
+                (emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, latitude, longitude, address_text, assigned_hospital_id, status)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+              [emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, latitude, longitude, address_text, assigned_hospital_id]
+            );
+            return { call_id: legacyResult.insertId, emergency_id };
+          } catch (legacyErr) {
+            if (legacyErr.code === 'ER_DUP_ENTRY' && attempt < MAX_ATTEMPTS - 1) continue;
+            throw legacyErr;
+          }
+        }
+
         // ER_DUP_ENTRY on emergency_id collision — retry with a fresh code
         if (err.code === 'ER_DUP_ENTRY' && attempt < MAX_ATTEMPTS - 1) continue;
         throw err;
