@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
-import { Crosshair, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Crosshair, ArrowLeft, AlertTriangle, Camera } from 'lucide-react';
 import { submitEmergencyCall } from '../api/calls';
 import { addEmergencyId } from '../utils/localHistory';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
@@ -42,9 +42,16 @@ export default function ConfirmLocationScreen() {
   const [accuracy, setAccuracy] = useState(null);
   const [addressText, setAddressText] = useState('');
   const [description, setDescription] = useState('');
+  const [callerRole, setCallerRole] = useState('');
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoName, setPhotoName] = useState('');
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const mapRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   const locateDevice = useCallback(() => {
     if (!navigator.geolocation) {
@@ -75,6 +82,15 @@ export default function ConfirmLocationScreen() {
 
   useEffect(() => { locateDevice(); }, [locateDevice]);
 
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
+
   function handleMapClick(e) {
     const next = { lat: e.latLng.lat(), lng: e.latLng.lng() };
     setPosition(next);
@@ -96,6 +112,65 @@ export default function ConfirmLocationScreen() {
     setIsMapDragging(false);
   }
 
+  async function openCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Camera access is not supported in this browser.');
+      return;
+    }
+
+    try {
+      setCameraError('');
+      const permissionState = await navigator.permissions?.query?.({ name: 'camera' }).catch(() => null);
+      if (permissionState?.state === 'denied') {
+        setCameraError('Camera access was denied. Please enable camera permission in your browser settings and try again.');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
+      });
+
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      setIsCameraOpen(true);
+    } catch (err) {
+      setCameraError('Camera access was blocked. Please allow camera access and try again.');
+    }
+  }
+
+  function stopCamera() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraOpen(false);
+  }
+
+  function capturePhotoFromCamera() {
+    if (!videoRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    setPhotoPreview(dataUrl);
+    setPhotoName('camera-capture.jpg');
+    stopCamera();
+  }
+
   async function handleConfirm() {
     if (!position) return;
     setIsSubmitting(true);
@@ -105,6 +180,9 @@ export default function ConfirmLocationScreen() {
         emergency_type: 'medical',
         severity: 'unknown',
         description: description.trim() || undefined,
+        caller_role: callerRole.trim() || undefined,
+        photo_data: photoPreview || undefined,
+        photo_name: photoName || undefined,
         latitude: position.lat,
         longitude: position.lng,
         address_text: addressText.trim() || undefined
@@ -219,9 +297,61 @@ export default function ConfirmLocationScreen() {
           rows={2}
           style={{
             width: '100%', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)',
-            border: '1.5px solid var(--color-line)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)', resize: 'none'
+            border: '1.5px solid var(--color-line)', marginBottom: 'var(--space-2)', fontSize: 'var(--text-sm)', resize: 'none'
           }}
         />
+
+        <input
+          value={callerRole}
+          onChange={(e) => setCallerRole(e.target.value)}
+          placeholder="Your role (patient / stand-by / someone else)"
+          style={{
+            width: '100%', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)',
+            border: '1.5px solid var(--color-line)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)'
+          }}
+        />
+
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <div style={{ marginBottom: 'var(--space-2)' }}>
+            <button
+              type="button"
+              onClick={openCamera}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+                padding: '0.7rem 0.9rem', borderRadius: 'var(--radius-sm)',
+                border: '1.5px solid var(--color-line)', background: 'var(--color-surface)', fontSize: 'var(--text-sm)', fontWeight: 600
+              }}
+            >
+              <Camera size={18} color="var(--color-emergency)" />
+              {photoPreview ? 'Retake photo' : 'Take a photo'}
+            </button>
+          </div>
+
+          {isCameraOpen && (
+            <div style={{ border: '1px solid var(--color-line)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 'var(--space-2)' }}>
+              <video ref={videoRef} playsInline muted style={{ width: '100%', display: 'block', background: '#000' }} />
+              <div style={{ display: 'flex', gap: 'var(--space-2)', padding: 'var(--space-2)' }}>
+                <button type="button" onClick={capturePhotoFromCamera} style={{ flex: 1, padding: '0.7rem', borderRadius: 'var(--radius-sm)', background: 'var(--color-emergency)', color: '#fff', fontWeight: 700 }}>
+                  Capture photo
+                </button>
+                <button type="button" onClick={stopCamera} style={{ padding: '0.7rem 0.9rem', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--color-line)', background: 'var(--color-surface)', fontWeight: 600 }}>
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {cameraError && <p style={{ marginTop: '0.4rem', fontSize: 'var(--text-xs)', color: 'var(--color-warning)' }}>{cameraError}</p>}
+          {photoName && <p style={{ marginTop: '0.45rem', fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)' }}>{photoName}</p>}
+        </div>
+
+        {photoPreview && (
+          <img
+            src={photoPreview}
+            alt="Captured emergency evidence"
+            style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', marginBottom: 'var(--space-3)', border: '1px solid var(--color-line)' }}
+          />
+        )}
 
         {submitError && (
           <p style={{ color: 'var(--color-emergency-dark)', fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 'var(--space-3)' }}>
@@ -229,7 +359,12 @@ export default function ConfirmLocationScreen() {
           </p>
         )}
 
-        <Button fullWidth size="lg" onClick={handleConfirm} disabled={!position || isSubmitting}>
+        <Button
+          fullWidth
+          size="lg"
+          onClick={handleConfirm}
+          disabled={!position || isSubmitting || !callerRole.trim() || !photoPreview}
+        >
           {isSubmitting ? 'Sending…' : 'Confirm location & send'}
         </Button>
       </div>

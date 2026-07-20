@@ -10,16 +10,16 @@ const CallModel = {
   // assigned_hospital_id is the auto-routed nearest hospital, computed by
   // the controller (via utils/distance.js) before calling this — it's what
   // scopes which hospital's dispatcher can see this call.
-  async create({ caller_user_id = null, caller_phone = null, emergency_type, severity, description, latitude, longitude, address_text, assigned_hospital_id = null }) {
+  async create({ caller_user_id = null, caller_phone = null, emergency_type, severity, description, caller_role = null, photo_data = null, photo_name = null, latitude, longitude, address_text, assigned_hospital_id = null }) {
     const MAX_ATTEMPTS = 5;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const emergency_id = generateEmergencyId();
       try {
         const [result] = await pool.query(
           `INSERT INTO emergency_calls
-            (emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, latitude, longitude, address_text, assigned_hospital_id, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
-          [emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, latitude, longitude, address_text, assigned_hospital_id]
+            (emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, caller_role, photo_data, photo_name, latitude, longitude, address_text, assigned_hospital_id, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          [emergency_id, caller_user_id, caller_phone, emergency_type, severity, description, caller_role, photo_data, photo_name, latitude, longitude, address_text, assigned_hospital_id]
         );
         return { call_id: result.insertId, emergency_id };
       } catch (err) {

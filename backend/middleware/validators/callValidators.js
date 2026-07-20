@@ -38,6 +38,23 @@ const validateCreateCall = [
     .isString()
     .isLength({ max: 1000 }).withMessage('description must be under 1000 characters'),
 
+  body('caller_role')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isString()
+    .isLength({ max: 100 }).withMessage('caller_role must be under 100 characters'),
+
+  body('photo_data')
+    .optional({ nullable: true, checkFalsy: true })
+    .isString()
+    .isLength({ max: 8000000 }).withMessage('photo_data is too large'),
+
+  body('photo_name')
+    .optional({ nullable: true, checkFalsy: true })
+    .trim()
+    .isString()
+    .isLength({ max: 255 }).withMessage('photo_name must be under 255 characters'),
+
   // Final middleware: collects any errors raised above and short-circuits with 400
   (req, res, next) => {
     const errors = validationResult(req);

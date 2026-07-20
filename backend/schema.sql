@@ -87,6 +87,9 @@ CREATE TABLE emergency_calls (
     emergency_type ENUM('medical', 'accident', 'fire_related', 'other') DEFAULT 'medical',
     severity ENUM('critical', 'urgent', 'moderate', 'unknown') DEFAULT 'unknown',
     description TEXT,
+    caller_role VARCHAR(100) NULL,
+    photo_data TEXT NULL,
+    photo_name VARCHAR(255) NULL,
     latitude DECIMAL(10,7) NOT NULL,           -- confirmed location is now required (map confirm step)
     longitude DECIMAL(10,7) NOT NULL,
     address_text VARCHAR(255),
