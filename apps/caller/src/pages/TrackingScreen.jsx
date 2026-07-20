@@ -96,9 +96,10 @@ const calculateDistanceKm = (origin, destination) => {
       setRoutePath(null);
       const initialDriverLocation = dispatch?.ambulance_current_latitude != null && dispatch?.ambulance_current_longitude != null
         ? { lat: Number(dispatch.ambulance_current_latitude), lng: Number(dispatch.ambulance_current_longitude) }
-        : dispatch?.ambulance_lat != null && dispatch?.ambulance_lng != null
-          ? { lat: Number(dispatch.ambulance_lat), lng: Number(dispatch.ambulance_lng) }
-          : null;
+        : null;
+      if (initialDriverLocation) {
+        setAmbulanceLocation(initialDriverLocation);
+      }
       try {
         const loc = await getAmbulanceLocation(emergencyId);
         if (loc?.latitude != null && loc?.longitude != null) {
@@ -171,8 +172,7 @@ const calculateDistanceKm = (origin, destination) => {
       : effectiveCallerLocation
     : { lat: 11.5564, lng: 104.9282 };
 
-  const hasGoogleMapsMarkers = isLoaded && window.google?.maps?.marker?.AdvancedMarkerElement;
-
+  
   function handleCopyId() {
     navigator.clipboard.writeText(call.emergency_id).then(() => {
       setCopied(true);

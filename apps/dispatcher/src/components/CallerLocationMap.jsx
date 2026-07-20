@@ -71,8 +71,8 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
       >
         <Marker
           position={callerPosition}
-          title="Dispatcher location"
-          label={{ text: '🏥', fontSize: '22px' }}
+          title="Caller location"
+          label={{ text: '📍', fontSize: '20px' }}
           icon={{
             url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
           }}

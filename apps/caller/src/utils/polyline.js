@@ -10,7 +10,7 @@ export function decodePolyline(encoded) {
   while (index < len) {
     let result = 0;
     let shift = 0;
-    let byte = 0;
+    let byte;
     do {
       byte = encoded.charCodeAt(index++) - 63;
       result |= (byte & 0x1f) << shift;

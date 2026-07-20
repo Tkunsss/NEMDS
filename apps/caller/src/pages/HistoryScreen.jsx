@@ -20,14 +20,11 @@ function statusColor(status) {
 export default function HistoryScreen() {
   const navigate = useNavigate();
   const [calls, setCalls] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => getStoredEmergencyIds().length > 0);
 
   useEffect(() => {
     const ids = getStoredEmergencyIds();
-    if (ids.length === 0) {
-      setIsLoading(false);
-      return;
-    }
+    if (ids.length === 0) return;
     getCallHistory(ids)
       .then(setCalls)
       .catch((err) => console.error('Failed to load history', err))

@@ -1,4 +1,5 @@
 // src/context/AuthContext.jsx
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getCurrentUser } from '../api/auth';
 
@@ -6,11 +7,11 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem('ncemds_admin_token'));
 
   useEffect(() => {
     const token = localStorage.getItem('ncemds_admin_token');
-    if (!token) { setIsLoading(false); return; }
+    if (!token) return;
     getCurrentUser()
       .then(setUser)
       .catch(() => localStorage.removeItem('ncemds_admin_token'))

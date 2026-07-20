@@ -25,7 +25,7 @@ export default function RecordsScreen() {
   const [unassigned, setUnassigned] = useState([]);
 
   useEffect(() => {
-    setIsLoading(true);
+    Promise.resolve().then(() => setIsLoading(true));
     getSystemRecords(PAGE_SIZE, page * PAGE_SIZE)
       .then((res) => {
         const safeRecords = Array.isArray(res?.data) ? res.data : [];
