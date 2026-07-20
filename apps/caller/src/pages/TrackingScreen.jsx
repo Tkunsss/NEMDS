@@ -7,7 +7,7 @@ import { io } from 'socket.io-client';
 import { CheckCircle2, Circle, Copy, X, Radio } from 'lucide-react';
 import { getCallById, cancelEmergencyCall, sendLocationPing, getDispatchForCall, getAmbulanceLocation } from '../api/calls';
 import Button from '../components/Button';
-import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
+import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_ID } from '../utils/googleMapsConfig';
 import { formatCambodiaDateTime } from '../utils/time';
 
 const STAGES = [
@@ -48,7 +48,8 @@ export default function TrackingScreen() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES
+    libraries: GOOGLE_MAPS_LIBRARIES,
+    mapIds: GOOGLE_MAPS_ID ? [GOOGLE_MAPS_ID] : undefined
   });
 
 const calculateDistanceKm = (origin, destination) => {
