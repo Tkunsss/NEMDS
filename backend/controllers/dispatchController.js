@@ -77,7 +77,7 @@ async function createDispatch(req, res) {
 async function getDispatchForCall(req, res) {
   try {
     const dispatch = await DispatchModel.findByCall(req.params.callId);
-    if (!dispatch) return res.status(404).json({ success: false, message: 'No dispatch found for this call' });
+    if (!dispatch) return res.json({ success: true, data: null });
     res.json({ success: true, data: dispatch });
   } catch (err) {
     console.error('getDispatchForCall error:', err);

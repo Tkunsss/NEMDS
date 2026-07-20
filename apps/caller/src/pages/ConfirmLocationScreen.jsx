@@ -1,7 +1,8 @@
 // src/pages/ConfirmLocationScreen.jsx
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader } from '@react-google-maps/api';
+import MapMarker from '../components/MapMarker';
 import { Crosshair, ArrowLeft, AlertTriangle, Camera } from 'lucide-react';
 import { submitEmergencyCall } from '../api/calls';
 import { addEmergencyId } from '../utils/localHistory';
@@ -265,7 +266,7 @@ export default function ConfirmLocationScreen() {
             onDragStart={handleMapDragStart}
             onDragEnd={handleMapDragEnd}
           >
-            <Marker position={position} />
+            <MapMarker position={position} title="Confirmed caller location" zIndex={3} />
           </GoogleMap>
         )}
 

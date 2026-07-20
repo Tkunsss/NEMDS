@@ -1,7 +1,8 @@
 // src/pages/TrackingScreen.jsx
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { GoogleMap, Marker, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, Polyline, useJsApiLoader } from '@react-google-maps/api';
+import MapMarker from '../components/MapMarker';
 import { io } from 'socket.io-client';
 import { CheckCircle2, Circle, Copy, X, Radio } from 'lucide-react';
 import { getCallById, cancelEmergencyCall, sendLocationPing, getDispatchForCall, getAmbulanceLocation } from '../api/calls';
@@ -166,28 +167,7 @@ const calculateDistanceKm = (origin, destination) => {
       : { lat: Number(call.latitude), lng: Number(call.longitude) }
     : { lat: 11.5564, lng: 104.9282 };
 
-  const callerMarkerIcon = isLoaded && window.google?.maps
-    ? {
-        path: window.google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: '#2563eb',
-        fillOpacity: 1,
-        strokeColor: '#ffffff',
-        strokeWeight: 2
-      }
-    : undefined;
-  const driverMarkerIcon = isLoaded && window.google?.maps
-    ? {
-        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-            <rect width="48" height="48" rx="12" ry="12" fill="#f97316" />
-            <text x="50%" y="55%" text-anchor="middle" dominant-baseline="middle" font-size="28">🚑</text>
-          </svg>
-        `),
-        scaledSize: new window.google.maps.Size(32, 32),
-        anchor: new window.google.maps.Point(16, 32)
-      }
-    : undefined;
+  const hasGoogleMapsMarkers = isLoaded && window.google?.maps?.marker?.AdvancedMarkerElement;
 
   function handleCopyId() {
     navigator.clipboard.writeText(call.emergency_id).then(() => {
@@ -392,19 +372,19 @@ const calculateDistanceKm = (origin, destination) => {
                       zoom={12}
                       options={MAP_OPTIONS}
                     >
-                      <Marker
+                      <MapMarker
                         position={{ lat: Number(call.latitude), lng: Number(call.longitude) }}
-                        icon={callerMarkerIcon}
-                        zIndex={3}
                         title="Confirmed caller location"
+                        zIndex={3}
+                        kind="caller"
                       />
                       {driverLocation && (
                         <>
-                          <Marker
+                          <MapMarker
                             position={driverLocation}
-                            icon={driverMarkerIcon}
-                            zIndex={4}
                             title="Driver location"
+                            zIndex={4}
+                            kind="driver"
                           />
                           {routePath && (
                             <Polyline
