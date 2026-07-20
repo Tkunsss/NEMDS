@@ -144,6 +144,7 @@ const calculateDistanceKm = (origin, destination) => {
 
   const currentStageIndex = call ? STAGES.findIndex((s) => s.key === call.status) : 0;
   const isTrackingLive = call && !['completed', 'cancelled'].includes(call.status);
+  const callStatus = call?.status;
   const driverCurrentLocation = useMemo(() => {
     return dispatchInfo?.ambulance_current_latitude != null && dispatchInfo?.ambulance_current_longitude != null
       ? { lat: Number(dispatchInfo.ambulance_current_latitude), lng: Number(dispatchInfo.ambulance_current_longitude) }
@@ -161,12 +162,12 @@ const calculateDistanceKm = (origin, destination) => {
       return ambulanceLocation;
     }
 
-    if (call?.status && ['en_route', 'on_scene', 'transporting'].includes(call.status)) {
+    if (callStatus && ['en_route', 'on_scene', 'transporting'].includes(callStatus)) {
       return driverCurrentLocation;
     }
 
     return null;
-  }, [ambulanceLocation, call?.status, driverCurrentLocation]);
+  }, [ambulanceLocation, callStatus, driverCurrentLocation]);
   const mapCenter = useMemo(() => {
     if (effectiveCallerLocation) {
       if (driverLocation) {
