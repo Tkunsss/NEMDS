@@ -10,6 +10,20 @@ const { shouldReleaseAmbulanceOnCancel } = require('../utils/dispatchRouting');
 const { resolveCallerLocation } = require('../utils/callerLocation');
 const { resolveCallListScope } = require('../utils/callHistory');
 
+function buildRouteNote({ assigned_hospital_id, nearest, allHospitals = [] }) {
+  const hasUsableName = nearest && typeof nearest.name === 'string' && nearest.name.trim();
+
+  if (assigned_hospital_id && hasUsableName) {
+    return `Routed to ${nearest.name}`;
+  }
+
+  if (Array.isArray(allHospitals) && allHospitals.length > 0) {
+    return 'Could not auto-route to a hospital with coordinates; routed using fallback';
+  }
+
+  return 'Could not auto-route — no hospitals available';
+}
+
 // POST /api/calls
 // Caller app: submit a new emergency. No login or phone number required —
 // the caller has already confirmed their location on the map before this
@@ -45,11 +59,7 @@ async function createCall(req, res) {
     const allHospitals = await HospitalModel.findAll();
     const nearest = findNearest(allHospitals, latitude, longitude, { latKey: 'latitude', lngKey: 'longitude' });
     const assigned_hospital_id = nearest ? nearest.hospital_id : null;
-    const routeNote = assigned_hospital_id
-      ? `Routed to ${nearest.name}`
-      : allHospitals.length > 0
-        ? `Routed to ${nearest.name} (fallback)`
-        : 'Could not auto-route — no hospitals available';
+    const routeNote = buildRouteNote({ assigned_hospital_id, nearest, allHospitals });
 
     const { call_id, emergency_id } = await CallModel.create({
       caller_user_id,
@@ -292,6 +302,7 @@ async function getUnassignedCalls(req, res) {
 }
 
 module.exports = {
+  buildRouteNote,
   createCall, getCall, getMyCalls, listCalls, updateCallStatus, cancelCall,
   addLocationPing, getLatestLocation, getUnassignedCalls
 };
