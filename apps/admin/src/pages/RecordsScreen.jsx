@@ -133,6 +133,17 @@ export default function RecordsScreen() {
                   </p>
                   {r.description && <p style={{ fontSize: 'var(--text-sm)', marginBottom: 'var(--space-3)' }}>{r.description}</p>}
 
+                  {r.photo_data && (
+                    <div style={{ marginBottom: 'var(--space-3)' }}>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>PHOTO</p>
+                      <img
+                        src={r.photo_data}
+                        alt={r.photo_name || 'Call photo'}
+                        style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+                      />
+                    </div>
+                  )}
+
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', fontWeight: 700, marginBottom: 'var(--space-2)' }}>STATUS TIMELINE</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
                     {r.timeline.map((t) => (

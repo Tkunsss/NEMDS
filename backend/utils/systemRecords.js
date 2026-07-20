@@ -10,6 +10,8 @@ function buildSystemRecords(calls = [], logsByCall = {}) {
     address_text: call.address_text,
     latitude: call.latitude ?? null,
     longitude: call.longitude ?? null,
+    photo_data: call.photo_data || null,
+    photo_name: call.photo_name || null,
     assigned_hospital_id: call.assigned_hospital_id,
     created_at: call.created_at,
     timeline: (logsByCall[call.call_id] || []).map((entry) => ({

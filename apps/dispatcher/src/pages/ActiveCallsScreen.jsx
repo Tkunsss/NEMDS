@@ -209,6 +209,17 @@ export default function ActiveCallsScreen() {
             <p style={{ fontSize: 'var(--text-sm)' }}>{selectedCall.description || 'No description provided.'}</p>
           </div>
 
+          {selectedCall.photo_data && (
+            <div style={{ marginBottom: 'var(--space-4)' }}>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>PHOTO</p>
+              <img
+                src={selectedCall.photo_data}
+                alt={selectedCall.photo_name || 'Caller photo'}
+                style={{ width: '100%', maxHeight: '220px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)' }}
+              />
+            </div>
+          )}
+
           {view === 'history' ? (
             <div style={{ marginBottom: 'var(--space-5)', padding: 'var(--space-3)', borderRadius: 'var(--radius-sm)', background: 'var(--color-panel-raised)' }}>
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>CASE STATUS</p>
