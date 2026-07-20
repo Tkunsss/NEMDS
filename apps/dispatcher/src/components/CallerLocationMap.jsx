@@ -1,7 +1,8 @@
 // src/components/CallerLocationMap.jsx
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
+import { getAmbulanceLocation } from '../api/ambulances';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
 
@@ -22,7 +23,7 @@ const MAP_OPTIONS = {
   styles: DARK_MAP_STYLE
 };
 
-export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 200 }) {
+export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 200, ambulanceId, callId }) {
   const { isLoaded } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -30,6 +31,7 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
   });
 
   const mapRef = useRef(null);
+  const [driverPosition, setDriverPosition] = useState(null);
 
   const callerPosition = useMemo(
     () =>
@@ -38,6 +40,46 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
         : null,
     [fallbackLat, fallbackLng]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDriverPosition() {
+      if (!ambulanceId) {
+        setDriverPosition(null);
+        return;
+      }
+
+      try {
+        const location = await getAmbulanceLocation(ambulanceId);
+        if (!cancelled && location?.latitude != null && location?.longitude != null) {
+          setDriverPosition({ lat: Number(location.latitude), lng: Number(location.longitude) });
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setDriverPosition(null);
+        }
+      }
+    }
+
+    loadDriverPosition();
+    const interval = window.setInterval(loadDriverPosition, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [ambulanceId]);
+
+  const mapCenter = useMemo(() => {
+    if (callerPosition && driverPosition) {
+      return {
+        lat: (callerPosition.lat + driverPosition.lat) / 2,
+        lng: (callerPosition.lng + driverPosition.lng) / 2
+      };
+    }
+
+    return callerPosition || driverPosition || { lat: 11.5564, lng: 104.9282 };
+  }, [callerPosition, driverPosition]);
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
@@ -59,13 +101,13 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
     <div style={{ height, borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
       <GoogleMap
         mapContainerStyle={MAP_CONTAINER_STYLE}
-        center={callerPosition}
-        zoom={15}
+        center={mapCenter}
+        zoom={14}
         options={MAP_OPTIONS}
         onLoad={(map) => {
           mapRef.current = map;
-          if (callerPosition) {
-            map.panTo(callerPosition);
+          if (mapCenter) {
+            map.panTo(mapCenter);
           }
         }}
       >
@@ -77,6 +119,16 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
             url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
           }}
         />
+        {driverPosition && (
+          <Marker
+            position={driverPosition}
+            title="Ambulance location"
+            label={{ text: '🚑', fontSize: '20px' }}
+            icon={{
+              url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
+            }}
+          />
+        )}
       </GoogleMap>
     </div>
   );
