@@ -67,6 +67,12 @@ async function createCall(req, res) {
     const assigned_hospital_id = nearest ? nearest.hospital_id : null;
     const routeNote = buildRouteNote({ assigned_hospital_id, nearest, allHospitals });
 
+    const normalizedPhotoData = typeof photo_data === 'string' && photo_data.trim()
+      ? photo_data.length > 20000
+        ? null
+        : photo_data
+      : null;
+
     const { call_id, emergency_id } = await CallModel.create({
       caller_user_id,
       caller_phone,
@@ -74,7 +80,7 @@ async function createCall(req, res) {
       severity,
       description,
       caller_role: typeof caller_role === 'string' ? caller_role.trim() : null,
-      photo_data: typeof photo_data === 'string' ? photo_data : null,
+      photo_data: normalizedPhotoData,
       photo_name: typeof photo_name === 'string' ? photo_name.trim() : null,
       latitude,
       longitude,

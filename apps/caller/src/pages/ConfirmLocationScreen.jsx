@@ -267,7 +267,7 @@ export default function ConfirmLocationScreen() {
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    const compressedDataUrl = await compressImageDataUrl(dataUrl);
+    const compressedDataUrl = await compressImageDataUrl(dataUrl, { maxWidth: 640, maxHeight: 480, quality: 0.6 });
     setPhotoPreview(compressedDataUrl);
     setPhotoName('camera-capture.jpg');
     stopCamera();
