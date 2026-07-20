@@ -39,6 +39,7 @@ export default function TrackingScreen() {
   const [lastAmbulanceUpdate, setLastAmbulanceUpdate] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [distanceKm, setDistanceKm] = useState(null);
+  const [callerLocation, setCallerLocation] = useState(null);
   const [routePath, setRoutePath] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -98,18 +99,12 @@ const calculateDistanceKm = (origin, destination) => {
         : dispatch?.ambulance_lat != null && dispatch?.ambulance_lng != null
           ? { lat: Number(dispatch.ambulance_lat), lng: Number(dispatch.ambulance_lng) }
           : null;
-      if (initialDriverLocation && callData.latitude != null && callData.longitude != null) {
-        setDistanceKm(calculateDistanceKm(initialDriverLocation, { lat: Number(callData.latitude), lng: Number(callData.longitude) }).toFixed(1));
-      }
       try {
         const loc = await getAmbulanceLocation(emergencyId);
         if (loc?.latitude != null && loc?.longitude != null) {
           const next = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
           setAmbulanceLocation(next);
           setLastAmbulanceUpdate(loc.created_at || loc.last_location_update || null);
-          if (callData.latitude != null && callData.longitude != null) {
-            setDistanceKm(calculateDistanceKm(next, { lat: Number(callData.latitude), lng: Number(callData.longitude) }).toFixed(1));
-          }
         }
       } catch (trackingErr) {
         if (trackingErr.response?.status !== 404) {
@@ -139,6 +134,8 @@ const calculateDistanceKm = (origin, destination) => {
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
+        const nextCallerLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCallerLocation(nextCallerLocation);
         sendLocationPing(call.call_id, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy).catch(() => {});
       },
       () => {},
@@ -158,13 +155,20 @@ const calculateDistanceKm = (origin, destination) => {
       : null;
   }, [dispatchInfo]);
   const driverLocation = ambulanceLocation ?? driverCurrentLocation;
-  const mapCenter = call?.latitude != null && call?.longitude != null
+  const effectiveCallerLocation = useMemo(() => {
+    if (callerLocation) return callerLocation;
+    if (call?.latitude != null && call?.longitude != null) {
+      return { lat: Number(call.latitude), lng: Number(call.longitude) };
+    }
+    return null;
+  }, [callerLocation, call]);
+  const mapCenter = effectiveCallerLocation
     ? driverLocation
       ? {
-          lat: (Number(call.latitude) + driverLocation.lat) / 2,
-          lng: (Number(call.longitude) + driverLocation.lng) / 2
+          lat: (effectiveCallerLocation.lat + driverLocation.lat) / 2,
+          lng: (effectiveCallerLocation.lng + driverLocation.lng) / 2
         }
-      : { lat: Number(call.latitude), lng: Number(call.longitude) }
+      : effectiveCallerLocation
     : { lat: 11.5564, lng: 104.9282 };
 
   const hasGoogleMapsMarkers = isLoaded && window.google?.maps?.marker?.AdvancedMarkerElement;
@@ -188,7 +192,7 @@ const calculateDistanceKm = (origin, destination) => {
   }
 
   useEffect(() => {
-    if (!driverLocation || !call?.latitude || !call?.longitude || !isLoaded || !window.google?.maps?.DirectionsService) {
+    if (!driverLocation || !effectiveCallerLocation || !isLoaded || !window.google?.maps?.DirectionsService) {
       return;
     }
 
@@ -196,7 +200,7 @@ const calculateDistanceKm = (origin, destination) => {
 
     const buildRoute = () => {
       const origin = driverLocation;
-      const destination = { lat: Number(call.latitude), lng: Number(call.longitude) };
+      const destination = effectiveCallerLocation;
       
       try {
         const directionsService = new window.google.maps.DirectionsService();
@@ -246,7 +250,7 @@ const calculateDistanceKm = (origin, destination) => {
 
     buildRoute();
     return () => { active = false; };
-  }, [driverLocation, call, isLoaded]);
+  }, [driverLocation, effectiveCallerLocation, isLoaded]);
 
   useEffect(() => {
     if (!call?.call_id) return;
@@ -267,9 +271,6 @@ const calculateDistanceKm = (origin, destination) => {
       const next = { lat: Number(update.latitude), lng: Number(update.longitude) };
       setAmbulanceLocation(next);
       setLastAmbulanceUpdate(update.timestamp || null);
-      if (call.latitude != null && call.longitude != null) {
-        setDistanceKm(calculateDistanceKm(next, { lat: Number(call.latitude), lng: Number(call.longitude) }).toFixed(1));
-      }
     });
 
     const handleStatusUpdate = async (payload) => {
@@ -288,6 +289,15 @@ const calculateDistanceKm = (origin, destination) => {
       socket.disconnect();
     };
   }, [call, fetchDispatchInfo]);
+
+  useEffect(() => {
+    if (!driverLocation || !effectiveCallerLocation) {
+      setDistanceKm(null);
+      return;
+    }
+
+    setDistanceKm(calculateDistanceKm(driverLocation, effectiveCallerLocation).toFixed(1));
+  }, [driverLocation, effectiveCallerLocation]);
 
   if (isLoading) {
     return (
@@ -372,12 +382,14 @@ const calculateDistanceKm = (origin, destination) => {
                       zoom={12}
                       options={MAP_OPTIONS}
                     >
-                      <MapMarker
-                        position={{ lat: Number(call.latitude), lng: Number(call.longitude) }}
-                        title="Confirmed caller location"
-                        zIndex={3}
-                        kind="caller"
-                      />
+                      {effectiveCallerLocation && (
+                        <MapMarker
+                          position={effectiveCallerLocation}
+                          title="Caller location"
+                          zIndex={3}
+                          kind="caller"
+                        />
+                      )}
                       {driverLocation && (
                         <>
                           <MapMarker

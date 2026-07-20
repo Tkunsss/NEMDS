@@ -9,6 +9,7 @@ const { findNearest } = require('../utils/distance');
 const { shouldReleaseAmbulanceOnCancel } = require('../utils/dispatchRouting');
 const { resolveCallerLocation } = require('../utils/callerLocation');
 const { resolveCallListScope } = require('../utils/callHistory');
+const { normalizePhotoData } = require('../utils/photoData');
 
 function buildRouteNote({ assigned_hospital_id, nearest, allHospitals = [] }) {
   const hasUsableName = nearest && typeof nearest.name === 'string' && nearest.name.trim();
@@ -67,11 +68,7 @@ async function createCall(req, res) {
     const assigned_hospital_id = nearest ? nearest.hospital_id : null;
     const routeNote = buildRouteNote({ assigned_hospital_id, nearest, allHospitals });
 
-    const normalizedPhotoData = typeof photo_data === 'string' && photo_data.trim()
-      ? photo_data.length > 20000
-        ? null
-        : photo_data
-      : null;
+    const normalizedPhotoData = normalizePhotoData(photo_data);
 
     const { call_id, emergency_id } = await CallModel.create({
       caller_user_id,
