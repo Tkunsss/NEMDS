@@ -42,6 +42,7 @@ const corsOptions = {
 
 const { testConnection } = require('./config/db');
 const { cleanupPendingCalls } = require('./utils/pendingCleanup');
+const { createJsonBodyParser, handlePayloadTooLarge } = require('./middleware/requestBody');
 
 const authRoutes = require('./routes/authRoutes');
 const callRoutes = require('./routes/callRoutes');
@@ -62,7 +63,7 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(express.json());
+app.use(createJsonBodyParser(4));
 
 // Make io accessible inside controllers via req.app.get('io')
 app.set('io', io);
@@ -130,6 +131,8 @@ io.on('connection', (socket) => {
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
+
+app.use(handlePayloadTooLarge);
 
 // Global error handler
 app.use((err, req, res, next) => {
