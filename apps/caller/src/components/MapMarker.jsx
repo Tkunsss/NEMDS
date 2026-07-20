@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Marker, useGoogleMap } from '@react-google-maps/api';
+import { OverlayView, useGoogleMap } from '@react-google-maps/api';
 
 export default function MapMarker({ position, title, zIndex, kind = 'default' }) {
   const map = useGoogleMap();
@@ -46,11 +46,34 @@ export default function MapMarker({ position, title, zIndex, kind = 'default' })
 
   if (!window.google?.maps?.marker?.AdvancedMarkerElement) {
     return (
-      <Marker
+      <OverlayView
         position={position}
-        title={title}
-        zIndex={zIndex}
-      />
+        mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+        getPixelPositionOffset={() => ({ x: -12, y: -24 })}
+      >
+        <div
+          aria-label={title}
+          title={title}
+          style={{
+            width: '24px',
+            height: '24px',
+            borderRadius: '999px',
+            border: '2px solid #fff',
+            background: kind === 'driver' ? '#f97316' : '#2563eb',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#fff',
+            fontSize: '12px',
+            fontWeight: 700,
+            lineHeight: 1,
+            zIndex
+          }}
+        >
+          {kind === 'driver' ? '🚑' : '•'}
+        </div>
+      </OverlayView>
     );
   }
 
