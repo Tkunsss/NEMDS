@@ -6,7 +6,7 @@ import MapMarker from '../components/MapMarker';
 import { Crosshair, ArrowLeft, AlertTriangle, Camera } from 'lucide-react';
 import { submitEmergencyCall } from '../api/calls';
 import { addEmergencyId } from '../utils/localHistory';
-import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY, GOOGLE_MAPS_ID } from '../utils/googleMapsConfig';
+import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 import Button from '../components/Button';
 
 const FALLBACK_CENTER = { lat: 11.5564, lng: 104.9282 }; // Phnom Penh — used only if GPS is unavailable
@@ -32,8 +32,7 @@ export default function ConfirmLocationScreen() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-    mapIds: GOOGLE_MAPS_ID ? [GOOGLE_MAPS_ID] : undefined
+    libraries: GOOGLE_MAPS_LIBRARIES
   });
 
   const [position, setPosition] = useState(null);
