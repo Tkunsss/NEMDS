@@ -23,7 +23,7 @@ const MAP_OPTIONS = {
   styles: DARK_MAP_STYLE
 };
 
-export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 200, ambulanceId, callId }) {
+export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 200, ambulanceId }) {
   const { isLoaded } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -55,7 +55,7 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
         if (!cancelled && location?.latitude != null && location?.longitude != null) {
           setDriverPosition({ lat: Number(location.latitude), lng: Number(location.longitude) });
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setDriverPosition(null);
         }
