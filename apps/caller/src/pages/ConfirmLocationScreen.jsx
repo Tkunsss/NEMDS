@@ -60,7 +60,10 @@ export default function ConfirmLocationScreen() {
       setIsLocating(false);
       return;
     }
+
     setIsLocating(true);
+    setLocationError(null);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
@@ -70,8 +73,12 @@ export default function ConfirmLocationScreen() {
         setIsLocating(false);
         if (mapRef.current) mapRef.current.panTo(next);
       },
-      () => {
-        setLocationError('Could not detect your location — drag the map to your location manually');
+      (err) => {
+        if (err.code === 1) {
+          setLocationError('Location access was denied. Please allow location access and try again.');
+        } else {
+          setLocationError('Could not detect your location — drag the map to your location manually');
+        }
         setPosition(FALLBACK_CENTER);
         setMapCenter(FALLBACK_CENTER);
         setIsLocating(false);
