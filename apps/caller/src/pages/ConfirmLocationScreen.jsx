@@ -99,6 +99,45 @@ export default function ConfirmLocationScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isCameraOpen || !streamRef.current || !videoRef.current) return;
+
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    video.muted = true;
+    video.playsInline = true;
+    video.autoplay = true;
+
+    const startPlayback = async () => {
+      try {
+        await video.play();
+        setCameraError('');
+      } catch {
+        setCameraError('Camera preview could not start. Please try again.');
+        stopCamera();
+      }
+    };
+
+    if (video.readyState >= 2) {
+      startPlayback();
+      return undefined;
+    }
+
+    const handleLoadedMetadata = () => {
+      startPlayback();
+    };
+
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    const retryTimer = window.setTimeout(() => {
+      startPlayback();
+    }, 300);
+
+    return () => {
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      window.clearTimeout(retryTimer);
+    };
+  }, [isCameraOpen]);
+
   function handleMapClick(e) {
     const next = { lat: e.latLng.lat(), lng: e.latLng.lng() };
     setPosition(next);
@@ -136,25 +175,30 @@ export default function ConfirmLocationScreen() {
         streamRef.current.getTracks().forEach((track) => track.stop());
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' },
-        audio: false
-      });
+      const constraintsList = [
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        { video: { facingMode: 'user' }, audio: false },
+        { video: true, audio: false }
+      ];
+
+      let stream = null;
+      let lastError = null;
+
+      for (const constraints of constraintsList) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) {
+        throw lastError || new Error('Unable to access camera');
+      }
 
       streamRef.current = stream;
       setIsCameraOpen(true);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = async () => {
-          try {
-            await videoRef.current.play();
-          } catch {
-            setCameraError('Camera preview could not start. Please try again.');
-            stopCamera();
-          }
-        };
-      }
     } catch {
       setCameraError('Camera access was blocked. Please allow camera access and try again.');
       stopCamera();
@@ -170,6 +214,8 @@ export default function ConfirmLocationScreen() {
       videoRef.current.srcObject = null;
       videoRef.current.pause();
       videoRef.current.onloadedmetadata = null;
+      videoRef.current.onloadeddata = null;
+      videoRef.current.onplay = null;
     }
     setIsCameraOpen(false);
   }
@@ -346,6 +392,9 @@ export default function ConfirmLocationScreen() {
               <Camera size={18} color="var(--color-emergency)" />
               {photoPreview ? 'Retake photo' : 'Take a photo'}
             </button>
+            <p style={{ marginTop: '0.4rem', fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', lineHeight: 1.4 }}>
+              If the camera preview shows black, tap “Take a photo” again to reopen the camera. This issue cannot be fixed from our side.
+            </p>
           </div>
 
           {isCameraOpen && (
