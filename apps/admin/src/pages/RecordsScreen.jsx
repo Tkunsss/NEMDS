@@ -96,7 +96,7 @@ export default function RecordsScreen() {
                 onClick={() => setExpandedId(isExpanded ? null : r.call_id)}
                 style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--space-4)', textAlign: 'left' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flex: 1 }}>
                   <span style={{ fontWeight: 700, fontSize: 'var(--text-sm)' }}>Call #{r.call_id}</span>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-soft)', textTransform: 'capitalize' }}>{r.emergency_type?.replace('_', ' ')}</span>
                   <span style={{
@@ -107,7 +107,16 @@ export default function RecordsScreen() {
                   </span>
                   <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>{formatCambodiaDateTime(r.created_at)}</span>
                 </div>
-                {isExpanded ? <ChevronUp size={18} color="var(--color-text-faint)" /> : <ChevronDown size={18} color="var(--color-text-faint)" />}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginLeft: 'var(--space-3)' }}>
+                  {r.photo_data && (
+                    <img
+                      src={r.photo_data}
+                      alt={r.photo_name || 'Call photo'}
+                      style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', flexShrink: 0 }}
+                    />
+                  )}
+                  {isExpanded ? <ChevronUp size={18} color="var(--color-text-faint)" /> : <ChevronDown size={18} color="var(--color-text-faint)" />}
+                </div>
               </button>
 
               {isExpanded && (

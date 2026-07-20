@@ -148,31 +148,40 @@ export default function ActiveCallsScreen() {
                   borderRadius: 'var(--radius-md)'
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
-                    <span style={{ fontWeight: 700, fontSize: 'var(--text-base)' }}>{call.emergency_id}</span>
-                    <SeverityBadge severity={call.severity} />
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-3)', flex: 1 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
+                      <span style={{ fontWeight: 700, fontSize: 'var(--text-base)' }}>{call.emergency_id}</span>
+                      <SeverityBadge severity={call.severity} />
+                    </div>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)', marginBottom: 'var(--space-1)', textTransform: 'capitalize' }}>
+                      {call.emergency_type.replace('_', ' ')} · {call.status.replace('_', ' ')}
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
+                      {call.caller_phone && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                          <Phone size={12} /> {call.caller_phone}
+                        </span>
+                      )}
+                      {call.caller_role && (
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                          Role: {call.caller_role.replace('_', ' ')}
+                        </span>
+                      )}
+                      {call.address_text && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                          <MapPin size={12} /> {call.address_text}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)', marginBottom: 'var(--space-1)', textTransform: 'capitalize' }}>
-                    {call.emergency_type.replace('_', ' ')} · {call.status.replace('_', ' ')}
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
-                    {call.caller_phone && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                        <Phone size={12} /> {call.caller_phone}
-                      </span>
-                    )}
-                    {call.caller_role && (
-                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                        Role: {call.caller_role.replace('_', ' ')}
-                      </span>
-                    )}
-                    {call.address_text && (
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
-                        <MapPin size={12} /> {call.address_text}
-                      </span>
-                    )}
-                  </div>
+                  {call.photo_data && (
+                    <img
+                      src={call.photo_data}
+                      alt={call.photo_name || 'Caller photo'}
+                      style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', flexShrink: 0 }}
+                    />
+                  )}
                 </div>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', whiteSpace: 'nowrap' }}>
                   <Clock size={12} /> {timeAgo(call.created_at)}
