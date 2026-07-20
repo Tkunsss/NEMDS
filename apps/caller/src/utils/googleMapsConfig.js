@@ -4,5 +4,5 @@
 // used in the app, or it will try to load the script twice and throw.
 
 export const GOOGLE_MAPS_LOADER_ID = 'ncemds-google-maps-script';
-export const GOOGLE_MAPS_LIBRARIES = ['places', 'routes'];
+export const GOOGLE_MAPS_LIBRARIES = ['places', 'routes', 'marker'];
 export const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
