@@ -62,8 +62,7 @@ const io = new Server(server, {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json());
 
 // Make io accessible inside controllers via req.app.get('io')
 app.set('io', io);
@@ -134,16 +133,6 @@ app.use((req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  if (err && err.type === 'entity.too.large') {
-    console.warn('Payload too large:', req.path);
-    return res.status(413).json({ success: false, message: 'Request payload is too large. Please use a smaller photo.' });
-  }
-
-  if (err && err.status === 400 && err.type === 'entity.parse.failed') {
-    console.warn('JSON parse failed:', req.path, err.message);
-    return res.status(400).json({ success: false, message: 'Invalid JSON payload.' });
-  }
-
   console.error('Unhandled error:', err);
   res.status(500).json({ success: false, message: 'Internal server error' });
 });
