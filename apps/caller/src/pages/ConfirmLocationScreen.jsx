@@ -26,6 +26,40 @@ const MAP_OPTIONS = {
   ]
 };
 
+async function compressImageDataUrl(dataUrl, { maxWidth = 1280, maxHeight = 960, quality = 0.8 } = {}) {
+  if (!dataUrl) return dataUrl;
+
+  return await new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      let width = image.width;
+      let height = image.height;
+      const scale = Math.min(1, maxWidth / width, maxHeight / height);
+
+      if (scale < 1) {
+        width = Math.max(1, Math.floor(width * scale));
+        height = Math.max(1, Math.floor(height * scale));
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext('2d');
+      if (!context) {
+        resolve(dataUrl);
+        return;
+      }
+
+      context.clearRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    image.onerror = () => resolve(dataUrl);
+    image.src = dataUrl;
+  });
+}
+
 export default function ConfirmLocationScreen() {
   const navigate = useNavigate();
 
@@ -220,7 +254,7 @@ export default function ConfirmLocationScreen() {
     setIsCameraOpen(false);
   }
 
-  function capturePhotoFromCamera() {
+  async function capturePhotoFromCamera() {
     if (!videoRef.current || videoRef.current.readyState < 2) return;
 
     const video = videoRef.current;
@@ -233,7 +267,8 @@ export default function ConfirmLocationScreen() {
 
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    setPhotoPreview(dataUrl);
+    const compressedDataUrl = await compressImageDataUrl(dataUrl);
+    setPhotoPreview(compressedDataUrl);
     setPhotoName('camera-capture.jpg');
     stopCamera();
   }
