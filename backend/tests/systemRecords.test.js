@@ -8,10 +8,13 @@ test('buildSystemRecords maps calls and status history into the admin records sh
       call_id: 101,
       emergency_id: 'EMG-001',
       caller_phone: '0712345678',
+      caller_role: 'family_member',
       emergency_type: 'medical',
       status: 'assigned',
       description: 'Chest pain',
       address_text: 'Nairobi',
+      latitude: 11.55,
+      longitude: 104.91,
       assigned_hospital_id: 3,
       created_at: '2026-07-07 09:00:00'
     }
@@ -31,5 +34,8 @@ test('buildSystemRecords maps calls and status history into the admin records sh
   assert.equal(records[0].timeline.length, 2);
   assert.equal(records[0].timeline[1].status, 'assigned');
   assert.equal(records[0].caller_phone, '0712345678');
+  assert.equal(records[0].caller_role, 'family_member');
+  assert.equal(records[0].latitude, 11.55);
+  assert.equal(records[0].longitude, 104.91);
   assert.equal(records[0].assigned_hospital_id, 3);
 });

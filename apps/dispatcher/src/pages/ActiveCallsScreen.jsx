@@ -156,10 +156,15 @@ export default function ActiveCallsScreen() {
                   <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)', marginBottom: 'var(--space-1)', textTransform: 'capitalize' }}>
                     {call.emergency_type.replace('_', ' ')} · {call.status.replace('_', ' ')}
                   </p>
-                  <div style={{ display: 'flex', gap: 'var(--space-4)', marginTop: 'var(--space-2)' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-3)', marginTop: 'var(--space-2)' }}>
                     {call.caller_phone && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
                         <Phone size={12} /> {call.caller_phone}
+                      </span>
+                    )}
+                    {call.caller_role && (
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                        Role: {call.caller_role.replace('_', ' ')}
                       </span>
                     )}
                     {call.address_text && (
@@ -185,6 +190,19 @@ export default function ActiveCallsScreen() {
             {view === 'history' ? `History — Call #${selectedCall.call_id}` : `Dispatch — Call #${selectedCall.call_id}`}
           </h2>
           <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-4)', fontFamily: 'var(--font-mono)' }}>{selectedCall.emergency_id}</p>
+
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>CALLER INFO</p>
+            <p style={{ fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
+              {selectedCall.caller_phone ? `Phone: ${selectedCall.caller_phone}` : 'Phone: not provided'}
+            </p>
+            <p style={{ fontSize: 'var(--text-sm)', marginBottom: '4px' }}>
+              {selectedCall.caller_role ? `Role: ${selectedCall.caller_role.replace('_', ' ')}` : 'Role: not provided'}
+            </p>
+            <p style={{ fontSize: 'var(--text-sm)' }}>
+              {selectedCall.address_text ? `Location: ${selectedCall.address_text}` : 'Location: not provided'}
+            </p>
+          </div>
 
           <div style={{ marginBottom: 'var(--space-4)' }}>
             <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: '4px' }}>DESCRIPTION</p>

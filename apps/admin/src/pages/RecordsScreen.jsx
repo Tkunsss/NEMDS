@@ -112,9 +112,22 @@ export default function RecordsScreen() {
 
               {isExpanded && (
                 <div style={{ padding: '0 var(--space-4) var(--space-4)', borderTop: '1px solid var(--color-border)' }}>
-                  <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)', margin: 'var(--space-3) 0' }}>
-                    {r.caller_phone ? `Caller: ${r.caller_phone}` : 'Caller: anonymous'} {r.address_text && `· ${r.address_text}`}
-                  </p>
+                  <div style={{ margin: 'var(--space-3) 0', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
+                      {r.caller_phone ? `Caller phone: ${r.caller_phone}` : 'Caller phone: not provided'}
+                    </p>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
+                      {r.caller_role ? `Caller role: ${r.caller_role.replace('_', ' ')}` : 'Caller role: not provided'}
+                    </p>
+                    <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-soft)' }}>
+                      {r.address_text ? `Address: ${r.address_text}` : 'Address: not provided'}
+                    </p>
+                    {(r.latitude != null || r.longitude != null) && (
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)' }}>
+                        Coordinates: {r.latitude ?? 'n/a'}, {r.longitude ?? 'n/a'}
+                      </p>
+                    )}
+                  </div>
                   <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-faint)', marginBottom: 'var(--space-3)' }}>
                     Routed to: {r.assigned_hospital_id ? `Hospital #${r.assigned_hospital_id}` : 'Not assigned'}
                   </p>
