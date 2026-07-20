@@ -1,6 +1,10 @@
 // models/hospitalModel.js
 const { pool } = require('../config/db');
 
+function isActiveHospital(hospital) {
+  return hospital == null || hospital.deleted_at == null || hospital.deleted_at === undefined;
+}
+
 const HospitalModel = {
   async create({ name, address, latitude, longitude, phone_number }) {
     const [result] = await pool.query(
@@ -12,13 +16,15 @@ const HospitalModel = {
   },
 
   async findAll() {
-    const [rows] = await pool.query(`SELECT * FROM hospitals WHERE deleted_at IS NULL ORDER BY name ASC`);
-    return rows;
+    const [rows] = await pool.query(`SELECT * FROM hospitals ORDER BY name ASC`);
+    return rows.filter(isActiveHospital);
   },
 
   async findById(hospital_id) {
-    const [rows] = await pool.query(`SELECT * FROM hospitals WHERE hospital_id = ? AND deleted_at IS NULL LIMIT 1`, [hospital_id]);
-    return rows[0] || null;
+    const [rows] = await pool.query(`SELECT * FROM hospitals WHERE hospital_id = ? LIMIT 1`, [hospital_id]);
+    const hospital = rows[0] || null;
+    if (!hospital) return null;
+    return isActiveHospital(hospital) ? hospital : null;
   },
 
   async findDeletedById(hospital_id) {

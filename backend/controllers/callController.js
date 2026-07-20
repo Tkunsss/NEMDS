@@ -56,7 +56,13 @@ async function createCall(req, res) {
 
     const caller_user_id = req.user ? req.user.user_id : null;
 
-    const allHospitals = await HospitalModel.findAll();
+    let allHospitals = [];
+    try {
+      allHospitals = await HospitalModel.findAll();
+    } catch (hospitalErr) {
+      console.warn('Hospital lookup failed during call creation; continuing without auto-routing:', hospitalErr.message);
+    }
+
     const nearest = findNearest(allHospitals, latitude, longitude, { latKey: 'latitude', lngKey: 'longitude' });
     const assigned_hospital_id = nearest ? nearest.hospital_id : null;
     const routeNote = buildRouteNote({ assigned_hospital_id, nearest, allHospitals });
