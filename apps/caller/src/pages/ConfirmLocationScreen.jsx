@@ -36,10 +36,8 @@ export default function ConfirmLocationScreen() {
 
   const [position, setPosition] = useState(null);
   const [mapCenter, setMapCenter] = useState(FALLBACK_CENTER);
-  const [isMapDragging, setIsMapDragging] = useState(false);
   const [isLocating, setIsLocating] = useState(true);
   const [locationError, setLocationError] = useState(null);
-  const [accuracy, setAccuracy] = useState(null);
   const [addressText, setAddressText] = useState('');
   const [description, setDescription] = useState('');
   const [callerRole, setCallerRole] = useState('');
@@ -69,7 +67,6 @@ export default function ConfirmLocationScreen() {
         const next = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setPosition(next);
         setMapCenter(next);
-        setAccuracy(pos.coords.accuracy);
         setIsLocating(false);
         if (mapRef.current) mapRef.current.panTo(next);
       },
@@ -87,7 +84,10 @@ export default function ConfirmLocationScreen() {
     );
   }, []);
 
-  useEffect(() => { locateDevice(); }, [locateDevice]);
+  useEffect(() => {
+    const timer = window.setTimeout(locateDevice, 0);
+    return () => window.clearTimeout(timer);
+  }, [locateDevice]);
 
   useEffect(() => {
     return () => {
@@ -106,7 +106,6 @@ export default function ConfirmLocationScreen() {
   }
 
   function handleMapDragStart() {
-    setIsMapDragging(true);
   }
 
   function handleMapDragEnd() {
@@ -116,7 +115,6 @@ export default function ConfirmLocationScreen() {
     const next = { lat: center.lat(), lng: center.lng() };
     setPosition(next);
     setMapCenter(next);
-    setIsMapDragging(false);
   }
 
   async function openCamera() {
@@ -133,19 +131,32 @@ export default function ConfirmLocationScreen() {
         return;
       }
 
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' },
         audio: false
       });
 
       streamRef.current = stream;
+      setIsCameraOpen(true);
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        videoRef.current.onloadedmetadata = async () => {
+          try {
+            await videoRef.current.play();
+          } catch {
+            setCameraError('Camera preview could not start. Please try again.');
+            stopCamera();
+          }
+        };
       }
-      setIsCameraOpen(true);
-    } catch (err) {
+    } catch {
       setCameraError('Camera access was blocked. Please allow camera access and try again.');
+      stopCamera();
     }
   }
 
@@ -156,12 +167,14 @@ export default function ConfirmLocationScreen() {
     }
     if (videoRef.current) {
       videoRef.current.srcObject = null;
+      videoRef.current.pause();
+      videoRef.current.onloadedmetadata = null;
     }
     setIsCameraOpen(false);
   }
 
   function capturePhotoFromCamera() {
-    if (!videoRef.current) return;
+    if (!videoRef.current || videoRef.current.readyState < 2) return;
 
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
@@ -311,7 +324,7 @@ export default function ConfirmLocationScreen() {
         <input
           value={callerRole}
           onChange={(e) => setCallerRole(e.target.value)}
-          placeholder="Your role (patient / stand-by / someone else)"
+          placeholder="Must input your role (patient / stand-by / someone else)"
           style={{
             width: '100%', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)',
             border: '1.5px solid var(--color-line)', marginBottom: 'var(--space-3)', fontSize: 'var(--text-sm)'
@@ -336,7 +349,13 @@ export default function ConfirmLocationScreen() {
 
           {isCameraOpen && (
             <div style={{ border: '1px solid var(--color-line)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', marginBottom: 'var(--space-2)' }}>
-              <video ref={videoRef} playsInline muted style={{ width: '100%', display: 'block', background: '#000' }} />
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                style={{ width: '100%', height: '240px', objectFit: 'cover', display: 'block', background: '#000' }}
+              />
               <div style={{ display: 'flex', gap: 'var(--space-2)', padding: 'var(--space-2)' }}>
                 <button type="button" onClick={capturePhotoFromCamera} style={{ flex: 1, padding: '0.7rem', borderRadius: 'var(--radius-sm)', background: 'var(--color-emergency)', color: '#fff', fontWeight: 700 }}>
                   Capture photo
