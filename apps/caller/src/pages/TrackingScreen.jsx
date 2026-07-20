@@ -94,12 +94,6 @@ const calculateDistanceKm = (origin, destination) => {
       setLastAmbulanceUpdate(dispatch.ambulance_last_location_update || null);
       setEtaMinutes(null);
       setRoutePath(null);
-      const initialDriverLocation = dispatch?.ambulance_current_latitude != null && dispatch?.ambulance_current_longitude != null
-        ? { lat: Number(dispatch.ambulance_current_latitude), lng: Number(dispatch.ambulance_current_longitude) }
-        : null;
-      if (initialDriverLocation) {
-        setAmbulanceLocation(initialDriverLocation);
-      }
       try {
         const loc = await getAmbulanceLocation(emergencyId);
         if (loc?.latitude != null && loc?.longitude != null) {
@@ -155,7 +149,6 @@ const calculateDistanceKm = (origin, destination) => {
       ? { lat: Number(dispatchInfo.ambulance_current_latitude), lng: Number(dispatchInfo.ambulance_current_longitude) }
       : null;
   }, [dispatchInfo]);
-  const driverLocation = ambulanceLocation ?? driverCurrentLocation;
   const effectiveCallerLocation = useMemo(() => {
     if (callerLocation) return callerLocation;
     if (call?.latitude != null && call?.longitude != null) {
@@ -163,14 +156,34 @@ const calculateDistanceKm = (origin, destination) => {
     }
     return null;
   }, [callerLocation, call]);
-  const mapCenter = effectiveCallerLocation
-    ? driverLocation
-      ? {
+  const driverLocation = useMemo(() => {
+    if (ambulanceLocation?.lat != null && ambulanceLocation?.lng != null) {
+      return ambulanceLocation;
+    }
+
+    if (call?.status && ['en_route', 'on_scene', 'transporting'].includes(call.status)) {
+      return driverCurrentLocation;
+    }
+
+    return null;
+  }, [ambulanceLocation, call?.status, driverCurrentLocation]);
+  const mapCenter = useMemo(() => {
+    if (effectiveCallerLocation) {
+      if (driverLocation) {
+        return {
           lat: (effectiveCallerLocation.lat + driverLocation.lat) / 2,
           lng: (effectiveCallerLocation.lng + driverLocation.lng) / 2
-        }
-      : effectiveCallerLocation
-    : { lat: 11.5564, lng: 104.9282 };
+        };
+      }
+      return effectiveCallerLocation;
+    }
+
+    if (driverLocation) {
+      return driverLocation;
+    }
+
+    return { lat: 11.5564, lng: 104.9282 };
+  }, [driverLocation, effectiveCallerLocation]);
 
   
   function handleCopyId() {
