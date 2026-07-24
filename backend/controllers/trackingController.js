@@ -94,13 +94,7 @@ async function getAmbulanceTrackingForCall(req, res) {
       return res.json({ success: true, data: tracking });
     }
 
-    const dispatch = await DispatchModel.findByCall(callId);
-    if (!dispatch) return res.status(404).json({ success: false, message: 'Tracking not found' });
-
-    const fallback = await resolveAmbulanceTrackingFallback(dispatch.ambulance_id);
-    if (!fallback) return res.status(404).json({ success: false, message: 'Tracking not found' });
-
-    res.json({ success: true, data: { ...fallback, ambulance_id: dispatch.ambulance_id, call_id: callId, dispatch_id: dispatch.dispatch_id } });
+    res.status(404).json({ success: false, message: 'Driver live location not found' });
   } catch (err) {
     console.error('getAmbulanceTrackingForCall error:', err);
     res.status(500).json({ success: false, message: 'Server error' });

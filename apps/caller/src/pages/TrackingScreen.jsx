@@ -362,7 +362,7 @@ const calculateDistanceKm = (origin, destination) => {
                 </>
               ) : (
                 <p style={{ fontSize: 'var(--text-sm)', color: 'var(--color-ink-soft)', marginTop: 'var(--space-2)' }}>
-                  Live ambulance tracking will appear once the driver marks the case as "On the way".
+                  Live ambulance tracking will appear once the driver app starts sharing GPS.
                 </p>
               )}
               <p style={{ fontSize: 'var(--text-xs)', color: 'var(--color-ink-soft)', marginTop: '4px' }}>Last update: {ambulanceLocation ? (formatCambodiaDateTime(lastAmbulanceUpdate) || 'just now') : 'waiting for driver'}</p>
