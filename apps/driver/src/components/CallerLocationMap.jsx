@@ -1,6 +1,6 @@
 // src/components/CallerLocationMap.jsx
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { GoogleMap, Marker, DirectionsRenderer, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, OverlayView, DirectionsRenderer, useJsApiLoader } from '@react-google-maps/api';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
@@ -21,6 +21,30 @@ const MAP_OPTIONS = {
   clickableIcons: false,
   styles: DARK_MAP_STYLE
 };
+
+function EmojiMarker({ position, title, text, fontSize = '20px', zIndex }) {
+  if (!position) return null;
+
+  return (
+    <OverlayView
+      position={position}
+      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      getPixelPositionOffset={(width, height) => ({
+        x: -(width / 2),
+        y: -height
+      })}
+    >
+      <div
+        title={title}
+        aria-label={title}
+        role="img"
+        style={{ fontSize, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', zIndex }}
+      >
+        {text}
+      </div>
+    </OverlayView>
+  );
+}
 
 export default function CallerLocationMap({ callId, height = 220, destinationLat, destinationLng, destinationName = 'Hospital', driverLat, driverLng, driverName = 'Starting Hospital', callerConfirmedLat, callerConfirmedLng }) {
   const { isLoaded } = useJsApiLoader({
@@ -178,37 +202,31 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
         
         {/* Ambulance starting hospital / live driver marker */}
         {effectiveDriverPos && (
-          <Marker
+          <EmojiMarker
             position={effectiveDriverPos}
             title={driverName}
-            label={{ text: '🚑', fontSize: '28px' }}
+            text="🚑"
+            fontSize="28px"
             zIndex={999}
-            icon={{
-              url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
-            }}
           />
         )}
         
         {/* Caller location marker */}
-        <Marker 
+        <EmojiMarker
           position={position}
           title="Caller Location"
           zIndex={1}
-          label={{ text: '📍', fontSize: '20px' }}
-          icon={{
-            url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
-          }}
+          text="📍"
+          fontSize="20px"
         />
         
         {/* Destination hospital marker */}
         {destinationPos && (
-          <Marker 
+          <EmojiMarker
             position={destinationPos}
             title={destinationName}
-            label={{ text: '🏥', fontSize: '22px' }}
-            icon={{
-              url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
-            }}
+            text="🏥"
+            fontSize="22px"
           />
         )}
 

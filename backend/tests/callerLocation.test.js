@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { resolveCallerLocation } = require('../utils/callerLocation');
+const { normalizeAccuracyMeters, normalizeCoordinate } = require('../utils/locationPing');
 
 test('prefers the latest ping when present', () => {
   const call = { latitude: 11.55, longitude: 104.92, created_at: '2024-01-01T00:00:00.000Z' };
@@ -17,4 +18,16 @@ test('falls back to the confirmed call location when no ping exists', () => {
     longitude: 104.92,
     created_at: '2024-01-01T00:00:00.000Z'
   });
+});
+
+test('normalizes browser accuracy values for the database column', () => {
+  assert.equal(normalizeAccuracyMeters(undefined), null);
+  assert.equal(normalizeAccuracyMeters(-1), null);
+  assert.equal(normalizeAccuracyMeters('12.5'), 12.5);
+  assert.equal(normalizeAccuracyMeters(50000), 9999.99);
+});
+
+test('normalizes location coordinates', () => {
+  assert.equal(normalizeCoordinate('11.55'), 11.55);
+  assert.equal(normalizeCoordinate('not-a-coordinate'), null);
 });

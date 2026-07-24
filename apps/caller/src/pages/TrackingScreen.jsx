@@ -39,7 +39,6 @@ export default function TrackingScreen() {
   const [lastAmbulanceUpdate, setLastAmbulanceUpdate] = useState(null);
   const [etaMinutes, setEtaMinutes] = useState(null);
   const [distanceKm, setDistanceKm] = useState(null);
-  const [callerLocation, setCallerLocation] = useState(null);
   const [routePath, setRoutePath] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -96,7 +95,7 @@ const calculateDistanceKm = (origin, destination) => {
       setRoutePath(null);
       try {
         const loc = await getAmbulanceLocation(emergencyId);
-        if (loc?.latitude != null && loc?.longitude != null) {
+        if (loc?.latitude != null && loc?.longitude != null && loc.source !== 'home_hospital') {
           const next = { lat: Number(loc.latitude), lng: Number(loc.longitude) };
           setAmbulanceLocation(next);
           setLastAmbulanceUpdate(loc.created_at || loc.last_location_update || null);
@@ -129,8 +128,6 @@ const calculateDistanceKm = (origin, destination) => {
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        const nextCallerLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setCallerLocation(nextCallerLocation);
         sendLocationPing(call.call_id, pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy).catch(() => {});
       },
       () => {},
@@ -150,13 +147,12 @@ const calculateDistanceKm = (origin, destination) => {
       ? { lat: Number(dispatchInfo.ambulance_current_latitude), lng: Number(dispatchInfo.ambulance_current_longitude) }
       : null;
   }, [dispatchInfo]);
-  const effectiveCallerLocation = useMemo(() => {
-    if (callerLocation) return callerLocation;
+  const confirmedCallerLocation = useMemo(() => {
     if (call?.latitude != null && call?.longitude != null) {
       return { lat: Number(call.latitude), lng: Number(call.longitude) };
     }
     return null;
-  }, [callerLocation, call]);
+  }, [call]);
   const driverLocation = useMemo(() => {
     if (ambulanceLocation?.lat != null && ambulanceLocation?.lng != null) {
       return ambulanceLocation;
@@ -169,14 +165,14 @@ const calculateDistanceKm = (origin, destination) => {
     return null;
   }, [ambulanceLocation, callStatus, driverCurrentLocation]);
   const mapCenter = useMemo(() => {
-    if (effectiveCallerLocation) {
+    if (confirmedCallerLocation) {
       if (driverLocation) {
         return {
-          lat: (effectiveCallerLocation.lat + driverLocation.lat) / 2,
-          lng: (effectiveCallerLocation.lng + driverLocation.lng) / 2
+          lat: (confirmedCallerLocation.lat + driverLocation.lat) / 2,
+          lng: (confirmedCallerLocation.lng + driverLocation.lng) / 2
         };
       }
-      return effectiveCallerLocation;
+      return confirmedCallerLocation;
     }
 
     if (driverLocation) {
@@ -184,7 +180,7 @@ const calculateDistanceKm = (origin, destination) => {
     }
 
     return { lat: 11.5564, lng: 104.9282 };
-  }, [driverLocation, effectiveCallerLocation]);
+  }, [driverLocation, confirmedCallerLocation]);
 
   
   function handleCopyId() {
@@ -206,7 +202,7 @@ const calculateDistanceKm = (origin, destination) => {
   }
 
   useEffect(() => {
-    if (!driverLocation || !effectiveCallerLocation || !isLoaded || !window.google?.maps?.DirectionsService) {
+    if (!driverLocation || !confirmedCallerLocation || !isLoaded || !window.google?.maps?.DirectionsService) {
       return;
     }
 
@@ -214,7 +210,7 @@ const calculateDistanceKm = (origin, destination) => {
 
     const buildRoute = () => {
       const origin = driverLocation;
-      const destination = effectiveCallerLocation;
+      const destination = confirmedCallerLocation;
       
       try {
         const directionsService = new window.google.maps.DirectionsService();
@@ -268,7 +264,7 @@ const calculateDistanceKm = (origin, destination) => {
 
     buildRoute();
     return () => { active = false; };
-  }, [driverLocation, effectiveCallerLocation, isLoaded]);
+  }, [driverLocation, confirmedCallerLocation, isLoaded]);
 
   useEffect(() => {
     if (!call?.call_id) return;
@@ -391,9 +387,9 @@ const calculateDistanceKm = (origin, destination) => {
                       zoom={12}
                       options={MAP_OPTIONS}
                     >
-                      {effectiveCallerLocation && (
+                      {confirmedCallerLocation && (
                         <MapMarker
-                          position={effectiveCallerLocation}
+                          position={confirmedCallerLocation}
                           title="Caller location"
                           zIndex={3}
                           kind="caller"

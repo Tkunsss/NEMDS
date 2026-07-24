@@ -1,6 +1,6 @@
 // src/components/CallerLocationMap.jsx
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 import { getAmbulanceLocation } from '../api/ambulances';
 
@@ -22,6 +22,30 @@ const MAP_OPTIONS = {
   clickableIcons: false,
   styles: DARK_MAP_STYLE
 };
+
+function EmojiMarker({ position, title, text, fontSize = '20px', zIndex }) {
+  if (!position) return null;
+
+  return (
+    <OverlayView
+      position={position}
+      mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+      getPixelPositionOffset={(width, height) => ({
+        x: -(width / 2),
+        y: -height
+      })}
+    >
+      <div
+        title={title}
+        aria-label={title}
+        role="img"
+        style={{ fontSize, lineHeight: 1, userSelect: 'none', pointerEvents: 'none', zIndex }}
+      >
+        {text}
+      </div>
+    </OverlayView>
+  );
+}
 
 export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 200, ambulanceId }) {
   const { isLoaded } = useJsApiLoader({
@@ -111,22 +135,18 @@ export default function CallerLocationMap({ fallbackLat, fallbackLng, height = 2
           }
         }}
       >
-        <Marker
+        <EmojiMarker
           position={callerPosition}
           title="Caller location"
-          label={{ text: '📍', fontSize: '20px' }}
-          icon={{
-            url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
-          }}
+          text="📍"
+          fontSize="20px"
         />
         {driverPosition && (
-          <Marker
+          <EmojiMarker
             position={driverPosition}
             title="Ambulance location"
-            label={{ text: '🚑', fontSize: '20px' }}
-            icon={{
-              url: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>'
-            }}
+            text="🚑"
+            fontSize="20px"
           />
         )}
       </GoogleMap>

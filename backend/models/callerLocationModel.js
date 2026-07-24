@@ -1,12 +1,20 @@
 // models/callerLocationModel.js
 const { pool } = require('../config/db');
+const { normalizeAccuracyMeters, normalizeCoordinate } = require('../utils/locationPing');
 
 const CallerLocationModel = {
   async addPing({ call_id, latitude, longitude, accuracy_meters = null }) {
+    const normalizedLatitude = normalizeCoordinate(latitude);
+    const normalizedLongitude = normalizeCoordinate(longitude);
+
+    if (normalizedLatitude === null || normalizedLongitude === null) {
+      throw new Error('Invalid caller location coordinates');
+    }
+
     const [result] = await pool.query(
       `INSERT INTO caller_location_pings (call_id, latitude, longitude, accuracy_meters)
        VALUES (?, ?, ?, ?)`,
-      [call_id, latitude, longitude, accuracy_meters]
+      [call_id, normalizedLatitude, normalizedLongitude, normalizeAccuracyMeters(accuracy_meters)]
     );
     return result.insertId;
   },
