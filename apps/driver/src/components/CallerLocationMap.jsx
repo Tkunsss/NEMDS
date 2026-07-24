@@ -1,6 +1,6 @@
 // src/components/CallerLocationMap.jsx
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { GoogleMap, OverlayView, DirectionsRenderer, useJsApiLoader } from '@react-google-maps/api';
+import { GoogleMap, OverlayView, Polyline, useJsApiLoader } from '@react-google-maps/api';
 import { GOOGLE_MAPS_LOADER_ID, GOOGLE_MAPS_LIBRARIES, GOOGLE_MAPS_API_KEY } from '../utils/googleMapsConfig';
 
 const MAP_CONTAINER_STYLE = { width: '100%', height: '100%' };
@@ -46,6 +46,17 @@ function EmojiMarker({ position, title, text, fontSize = '20px', zIndex }) {
   );
 }
 
+function toRoutePoint(point) {
+  if (!point) return null;
+
+  const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+  const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+
+  return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+    ? { lat: Number(lat), lng: Number(lng) }
+    : null;
+}
+
 export default function CallerLocationMap({ callId, height = 220, destinationLat, destinationLng, destinationName = 'Hospital', driverLat, driverLng, driverName = 'Starting Hospital', callerConfirmedLat, callerConfirmedLng }) {
   const { isLoaded } = useJsApiLoader({
     id: GOOGLE_MAPS_LOADER_ID,
@@ -55,7 +66,7 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
 
   const normalizedCallId = callId != null ? String(callId) : null;
   const [position, setPosition] = useState(null);
-  const [directions, setDirections] = useState(null);
+  const [routePath, setRoutePath] = useState(null);
   const mapRef = useRef(null);
   const lastCallIdRef = useRef(normalizedCallId);
   const hasLivePositionRef = useRef(false);
@@ -68,7 +79,7 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
     if (callIdChanged) {
       // Only clear state if callId changed (not on initial mount)
       setPosition(null);
-      setDirections(null);
+      setRoutePath(null);
       lastCallIdRef.current = normalizedCallId;
       hasLivePositionRef.current = false;
       confirmedPosRef.current = null;
@@ -134,20 +145,42 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
   useEffect(() => {
     if (!isLoaded || !position || !effectiveDriverPos) return;
 
-    const directionsService = new window.google.maps.DirectionsService();
+    let active = true;
 
-    directionsService.route(
-      {
-        origin: effectiveDriverPos,
-        destination: position,
-        travelMode: window.google.maps.TravelMode.DRIVING
-      },
-      (result, status) => {
-        if (status === window.google.maps.DirectionsStatus.OK) {
-          setDirections(result);
+    async function buildRoute() {
+      try {
+        if (!window.google?.maps?.importLibrary) {
+          throw new Error('Google Maps importLibrary is unavailable');
+        }
+
+        const { Route } = await window.google.maps.importLibrary('routes');
+        if (!Route?.computeRoutes) {
+          throw new Error('Route.computeRoutes is unavailable');
+        }
+
+        const { routes } = await Route.computeRoutes({
+          origin: effectiveDriverPos,
+          destination: position,
+          travelMode: 'DRIVING',
+          fields: ['path']
+        });
+
+        if (!active) return;
+
+        const points = routes?.[0]?.path?.map(toRoutePoint).filter(Boolean) || [];
+        setRoutePath(points.length > 0 ? points : null);
+      } catch (err) {
+        console.warn('Failed to get route:', err);
+        if (active) {
+          setRoutePath(null);
         }
       }
-    );
+    }
+
+    buildRoute();
+    return () => {
+      active = false;
+    };
   }, [position, effectiveDriverPos, isLoaded]);
 
   if (!GOOGLE_MAPS_API_KEY) {
@@ -230,18 +263,15 @@ export default function CallerLocationMap({ callId, height = 220, destinationLat
           />
         )}
 
-        {/* Directions route from caller to destination (follows roads) */}
-        {directions && (
-          <DirectionsRenderer
-            directions={directions}
+        {/* Route from driver to caller (follows roads) */}
+        {routePath && (
+          <Polyline
+            path={routePath}
             options={{
-              polylineOptions: {
-                strokeColor: '#4A90E2',
-                strokeOpacity: 0.8,
-                strokeWeight: 3,
-                geodesic: true
-              },
-              suppressMarkers: true
+              strokeColor: '#4A90E2',
+              strokeOpacity: 0.8,
+              strokeWeight: 3,
+              geodesic: true
             }}
           />
         )}

@@ -30,6 +30,17 @@ const MAP_OPTIONS = {
   ]
 };
 
+function toRoutePoint(point) {
+  if (!point) return null;
+
+  const lat = typeof point.lat === 'function' ? point.lat() : point.lat;
+  const lng = typeof point.lng === 'function' ? point.lng() : point.lng;
+
+  return Number.isFinite(Number(lat)) && Number.isFinite(Number(lng))
+    ? { lat: Number(lat), lng: Number(lng) }
+    : null;
+}
+
 export default function TrackingScreen() {
   const { emergencyId } = useParams();
   const navigate = useNavigate();
@@ -141,12 +152,6 @@ const calculateDistanceKm = (origin, destination) => {
 
   const currentStageIndex = call ? STAGES.findIndex((s) => s.key === call.status) : 0;
   const isTrackingLive = call && !['completed', 'cancelled'].includes(call.status);
-  const callStatus = call?.status;
-  const driverCurrentLocation = useMemo(() => {
-    return dispatchInfo?.ambulance_current_latitude != null && dispatchInfo?.ambulance_current_longitude != null
-      ? { lat: Number(dispatchInfo.ambulance_current_latitude), lng: Number(dispatchInfo.ambulance_current_longitude) }
-      : null;
-  }, [dispatchInfo]);
   const confirmedCallerLocation = useMemo(() => {
     if (call?.latitude != null && call?.longitude != null) {
       return { lat: Number(call.latitude), lng: Number(call.longitude) };
@@ -158,12 +163,8 @@ const calculateDistanceKm = (origin, destination) => {
       return ambulanceLocation;
     }
 
-    if (callStatus && ['en_route', 'on_scene', 'transporting'].includes(callStatus)) {
-      return driverCurrentLocation;
-    }
-
     return null;
-  }, [ambulanceLocation, callStatus, driverCurrentLocation]);
+  }, [ambulanceLocation]);
   const mapCenter = useMemo(() => {
     if (confirmedCallerLocation) {
       if (driverLocation) {
@@ -202,62 +203,53 @@ const calculateDistanceKm = (origin, destination) => {
   }
 
   useEffect(() => {
-    if (!driverLocation || !confirmedCallerLocation || !isLoaded || !window.google?.maps?.DirectionsService) {
+    if (!driverLocation || !confirmedCallerLocation || !isLoaded || !window.google?.maps?.importLibrary) {
       return;
     }
 
     let active = true;
 
-    const buildRoute = () => {
+    const buildRoute = async () => {
       const origin = driverLocation;
       const destination = confirmedCallerLocation;
       
       try {
-        const directionsService = new window.google.maps.DirectionsService();
-        const request = {
+        const { Route } = await window.google.maps.importLibrary('routes');
+        if (!Route?.computeRoutes) {
+          throw new Error('Route.computeRoutes is unavailable');
+        }
+
+        const { routes } = await Route.computeRoutes({
           origin,
           destination,
-          travelMode: 'DRIVING'
-        };
-        
-        directionsService.route(request, (result, status) => {
-          if (status === 'OK' && active) {
-            const route = result.routes[0];
-            
-            // Get polyline points from the route
-            const points = [];
-            if (route.overview_path) {
-              route.overview_path.forEach((point) => {
-                points.push({ lat: point.lat(), lng: point.lng() });
-              });
-            }
-            
-            if (points.length > 0) {
-              setRoutePath(points);
-            }
-            
-            const legs = route.legs[0];
-            if (legs?.duration) {
-              setEtaMinutes(Math.ceil(legs.duration.value / 60));
-            }
-            if (legs?.distance?.value != null) {
-              const routeKm = Math.round((legs.distance.value / 1000) * 10) / 10;
-              setDistanceKm(routeKm.toFixed(1));
-            } else {
-              const straightLineKm = calculateDistanceKm(origin, destination);
-              setDistanceKm(straightLineKm.toFixed(1));
-            }
-          } else if (status !== 'OK' && active) {
-            console.warn('Directions request failed:', status);
-            setRoutePath(null);
-            setEtaMinutes(null);
-            setDistanceKm(calculateDistanceKm(origin, destination).toFixed(1));
-          }
+          travelMode: 'DRIVING',
+          fields: ['path', 'distanceMeters', 'durationMillis']
         });
+
+        if (!active) return;
+
+        const route = routes?.[0];
+        const points = route?.path?.map(toRoutePoint).filter(Boolean) || [];
+        setRoutePath(points.length > 0 ? points : null);
+
+        if (Number.isFinite(route?.durationMillis)) {
+          setEtaMinutes(Math.ceil(route.durationMillis / 60000));
+        } else {
+          setEtaMinutes(null);
+        }
+
+        if (Number.isFinite(route?.distanceMeters)) {
+          const routeKm = Math.round((route.distanceMeters / 1000) * 10) / 10;
+          setDistanceKm(routeKm.toFixed(1));
+        } else {
+          setDistanceKm(calculateDistanceKm(origin, destination).toFixed(1));
+        }
       } catch (err) {
         console.warn('Failed to get route:', err);
         if (active) {
           setRoutePath(null);
+          setEtaMinutes(null);
+          setDistanceKm(calculateDistanceKm(origin, destination).toFixed(1));
         }
       }
     };

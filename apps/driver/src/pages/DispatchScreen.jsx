@@ -50,9 +50,9 @@ export default function DispatchScreen() {
     return () => clearInterval(interval);
   }, []);
 
-  const isTrackingActive = dispatch?.call_status === 'en_route';
+  const isTrackingActive = ['en_route', 'on_scene', 'transporting'].includes(dispatch?.call_status);
 
-  // Push live GPS to backend only once the driver has marked the case as en route.
+  // Push live GPS to backend while the driver is actively handling the call.
   useEffect(() => {
     if (!isTrackingActive || !ambulance || !navigator.geolocation) return;
 
